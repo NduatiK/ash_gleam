@@ -20,6 +20,7 @@ Generate type-safe Gleam clients directly from your Elixir Ash resources, ensuri
 
 ## TODO
 
+- Fix readme
 - Experiment with embedded resources (the most likely usecase)
 - Support destroy actions
 - Handle nested types eg when nesting embedded resources
