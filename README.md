@@ -1,17 +1,16 @@
 <!--
 SPDX-FileCopyrightText: 2026 Nduati Kuria
-SPDX-FileCopyrightText: 2025 ash_gleam contributors <https://github.com/ash-project/ash_gleam/graphs.contributors>
 
 SPDX-License-Identifier: MIT
 -->
 
-<img src="https://github.com/ash-project/ash_gleam/blob/main/logos/ash-typescript.png?raw=true" alt="Logo" width="300"/>
+<img src="https://github.com/NduatiK/ash_gleam/blob/main/logos/ash-typescript.png?raw=true" alt="Logo" width="300"/>
 
-![Elixir CI](https://github.com/ash-project/ash_gleam/workflows/CI/badge.svg)
+![Elixir CI](https://github.com/NduatiK/ash_gleam/workflows/CI/badge.svg)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Hex version badge](https://img.shields.io/hexpm/v/ash_gleam.svg)](https://hex.pm/packages/ash_gleam)
 [![Hexdocs badge](https://img.shields.io/badge/docs-hexdocs-purple)](https://hexdocs.pm/ash_gleam)
-[![REUSE status](https://api.reuse.software/badge/github.com/ash-project/ash_gleam)](https://api.reuse.software/info/github.com/ash-project/ash_gleam)
+[![REUSE status](https://api.reuse.software/badge/github.com/NduatiK/ash_gleam)](https://api.reuse.software/info/github.com/NduatiK/ash_gleam)
 
 # AshGleam
 
@@ -172,13 +171,12 @@ Please ensure:
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSES/MIT.txt](https://github.com/ash-project/ash_gleam/blob/main/LICENSES/MIT.txt) file for details.
+This project is licensed under the MIT License - see the [LICENSES/MIT.txt](https://github.com/NduatiK/ash_gleam/blob/main/LICENSES/MIT.txt) file for details.
 
 ## Support
 
 - **Documentation**: [https://hexdocs.pm/ash_gleam](https://hexdocs.pm/ash_gleam)
-- **GitHub Issues**: [https://github.com/ash-project/ash_gleam/issues](https://github.com/ash-project/ash_gleam/issues)
-- **Discord**: [Ash Framework Discord](https://discord.gg/HTHRaaVPUc)
-- **Forum**: [Elixir Forum - Ash Framework](https://elixirforum.com/c/elixir-framework-forums/ash-framework-forum)
+- **GitHub Issues**: [https://github.com/NduatiK/ash_gleam/issues](https://github.com/NduatiK/ash_gleam/issues)
+
 
 ---

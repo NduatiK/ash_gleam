@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2025 ash_gleam contributors <https://github.com/ash-project/ash_gleam/graphs/contributors>
+# SPDX-FileCopyrightText: 2025 ash_gleam contributors <https://github.com/NduatiK/ash_gleam/graphs/contributors>
 #
 # SPDX-License-Identifier: MIT
 

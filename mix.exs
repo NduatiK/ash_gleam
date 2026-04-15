@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2025 ash_gleam contributors <https://github.com/ash-project/ash_gleam/graphs/contributors>
+# SPDX-FileCopyrightText: 2025 ash_gleam contributors <https://github.com/NduatiK/ash_gleam/graphs/contributors>
 #
 # SPDX-License-Identifier: MIT
 
@@ -29,8 +29,8 @@ defmodule AshGleam.MixProject do
       aliases: aliases(),
       docs: &docs/0,
       description: @description,
-      source_url: "https://github.com/ash-project/ash_gleam",
-      homepage_url: "https://github.com/ash-project/ash_gleam",
+      source_url: "https://github.com/NduatiK/ash_gleam",
+      homepage_url: "https://github.com/NduatiK/ash_gleam",
       dialyzer: [
         plt_add_apps: [:mix]
       ],
@@ -95,12 +95,8 @@ defmodule AshGleam.MixProject do
       files: ~w(lib .formatter.exs mix.exs README*
         CHANGELOG* documentation usage-rules.md LICENSES priv),
       links: %{
-        "GitHub" => "https://github.com/ash-project/ash_gleam",
-        "Changelog" => "https://github.com/ash-project/ash_gleam/blob/main/CHANGELOG.md",
-        "Discord" => "https://discord.gg/HTHRaaVPUc",
-        "Website" => "https://ash-hq.org",
-        "Forum" => "https://elixirforum.com/c/elixir-framework-forums/ash-framework-forum",
-        "REUSE Compliance" => "https://api.reuse.software/info/github.com/ash-project/ash_gleam"
+        "GitHub" => "https://github.com/NduatiK/ash_gleam",
+        "Changelog" => "https://github.com/NduatiK/ash_gleam/blob/main/CHANGELOG.md",
       }
     ]
   end

@@ -7,7 +7,7 @@ import Config
 config :git_ops,
   mix_project: Mix.Project.get!(),
   types: [types: [tidbit: [hidden?: true], important: [header: "Important Changes"]]],
-  repository_url: "https://github.com/ash-project/ash_gleam",
+  repository_url: "https://github.com/NduatiK/ash_gleam",
   github_handle_lookup?: true,
   version_tag_prefix: "v",
   manage_mix_version?: true,
