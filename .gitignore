@@ -1,0 +1,37 @@
+# SPDX-FileCopyrightText: 2025 ash_gleam contributors <https://github.com/ash-project/ash_gleam/graphs/contributors>
+#
+# SPDX-License-Identifier: MIT
+
+# The directory Mix will write compiled artifacts to.
+/_build/
+
+# If you run "mix test --cover", coverage assets end up here.
+/cover/
+
+# The directory Mix downloads your dependencies sources to.
+/deps/
+
+# Where third-party dependencies like ExDoc output generated docs.
+/doc/
+
+# If the VM crashes, it generates a dump, let's ignore it too.
+erl_crash.dump
+
+# Also ignore archive artifacts (built via "mix archive.build").
+*.ez
+
+# Ignore package tarball (built via "mix hex.build").
+ash_gleam-*.tar
+
+# Temporary files, for example, from tests.
+/tmp/
+.ash_gleam/
+build/
+
+# Per-worktree mise local override
+mise.local.toml
+
+# Per-worktree Claude settings (sandbox config in worktrees)
+.claude/settings.local.json
+
+.DS_Store
