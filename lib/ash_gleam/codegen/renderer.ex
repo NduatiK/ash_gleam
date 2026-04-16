@@ -14,7 +14,7 @@ defmodule AshGleam.Codegen.Renderer do
 
     gleam =
       Enum.flat_map(manifest.resources, fn {_name, resource} ->
-        [%{path: "#{resource.module_name}.gleam", contents: render_resource(resource)}]
+        [%{path: "#{resource.module_name}.gleam", contents: render_resource(resource, prefix)}]
       end) ++
         Enum.flat_map(manifest.domains, fn {_name, domain} ->
           Enum.map(
@@ -37,7 +37,36 @@ defmodule AshGleam.Codegen.Renderer do
     %{gleam: gleam, elixir: elixir}
   end
 
-  defp render_resource(resource) do
+  # Collect import lines for any fields whose type references another resource module.
+  # `exclude_module` is the resource module for the file being rendered (to avoid self-import).
+  defp resource_imports(fields, prefix, exclude_module) do
+    fields
+    |> Enum.flat_map(&field_resource_modules/1)
+    |> Enum.uniq()
+    |> Enum.reject(&(&1 == exclude_module))
+    |> Enum.map_join("\n", fn mod ->
+      type_name = AshGleam.Resource.Info.gleam_type_name!(mod)
+      module_name = AshGleam.Resource.Info.gleam_module_name(mod)
+      "import #{prefix}/#{module_name}.{type #{type_name}}"
+    end)
+    |> case do
+      "" -> ""
+      imports -> imports <> "\n"
+    end
+  end
+
+  # Returns the resource module(s) referenced by a field's type.
+  defp field_resource_modules(%{type: type}) do
+    case AshGleam.TypeMapper.normalize(type) do
+      {:ok, {:resource, mod}} -> [mod]
+      {:ok, {:array, {:resource, mod}}} -> [mod]
+      _ -> []
+    end
+  end
+
+  defp render_resource(resource, prefix) do
+    imports = resource_imports(resource.fields, prefix, resource.module)
+
     fields =
       Enum.map_join(resource.fields, ",\n", fn field ->
         "    #{field.name}: #{gleam_type!(field.type, field.allow_nil?)}"
@@ -83,7 +112,7 @@ defmodule AshGleam.Codegen.Renderer do
       end)
 
     """
-    pub type #{resource.gleam_type} {
+    #{imports}pub type #{resource.gleam_type} {
       #{resource.gleam_type}(
     #{fields}
       )
@@ -121,6 +150,8 @@ defmodule AshGleam.Codegen.Renderer do
             not field.primary_key? and field.writable? and not field.generated?
           end)
 
+        extra_imports = resource_imports(create_fields, prefix, resource.module)
+
         fields =
           Enum.map_join(create_fields, ",\n", fn field ->
             "    #{field.name}: #{gleam_type!(field.type, field.allow_nil?)}"
@@ -136,7 +167,7 @@ defmodule AshGleam.Codegen.Renderer do
 
         """
         import #{resource_import}.{type #{resource_type}}
-
+        #{extra_imports}
         pub type #{action_module} {
           #{action_module}(
         #{fields}

@@ -15,6 +15,8 @@ defmodule AshGleam.CodegenTest do
              %{ffi_name: :get_todo, kind: :get},
              %{ffi_name: :first_completed_todo, kind: :get},
              %{ffi_name: :destroy_todo, kind: :destroy}
+             %{ffi_name: :create_project, kind: :create},
+             %{ffi_name: :get_project, kind: :get}
            ] = manifest.domains[domain_key].ffi
 
     assert Enum.any?(manifest.gleam_actions, &(&1.action_name == :add))

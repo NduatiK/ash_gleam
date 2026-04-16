@@ -6,6 +6,7 @@ defmodule AshGleam.TestDomain do
   resources do
     resource AshGleam.TestTodo
     resource AshGleam.TestEmptyResource
+    resource AshGleam.TestProject
   end
 
   gleam_ffi do
@@ -15,6 +16,11 @@ defmodule AshGleam.TestDomain do
       action :get_todo, :get
       action :first_completed_todo, :first_completed
       action :destroy_todo, :destroy
+    end
+
+    resource AshGleam.TestProject do
+      action :create_project, :create
+      action :get_project, :get
     end
   end
 end

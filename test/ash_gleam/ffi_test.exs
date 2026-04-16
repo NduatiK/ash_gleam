@@ -6,25 +6,32 @@ defmodule AshGleam.FFITest do
 
     on_exit(fn ->
       Ash.DataLayer.Ets.stop(AshGleam.TestTodo)
+      Ash.DataLayer.Ets.stop(AshGleam.TestProject)
     end)
 
     :ok
   end
 
   setup do
-    try do
-      Ash.DataLayer.Ets.stop(AshGleam.TestTodo)
-    rescue
-      _ -> :ok
-    end
+    for {mod, table} <- [
+          {AshGleam.TestTodo, :ash_gleam_test_todos},
+          {AshGleam.TestProject, :ash_gleam_test_projects}
+        ] do
+      try do
+        Ash.DataLayer.Ets.stop(mod)
+      rescue
+        _ -> :ok
+      end
 
-    case :ets.whereis(:ash_gleam_test_todos) do
-      :undefined -> :ok
-      table -> :ets.delete_all_objects(table)
+      case :ets.whereis(table) do
+        :undefined -> :ok
+        t -> :ets.delete_all_objects(t)
+      end
     end
 
     on_exit(fn ->
       Ash.DataLayer.Ets.stop(AshGleam.TestTodo)
+      Ash.DataLayer.Ets.stop(AshGleam.TestProject)
     end)
 
     {:ok, bridge: AshGleam.TestDomain.Generated}
@@ -175,10 +182,9 @@ defmodule AshGleam.FFITest do
       |> Ash.create!()
 
     destroy_todo_module = AshGleam.GeneratedGleamHelper.module_atom("destroy_todo")
+
     builder =
-      destroy_todo_module.new(
-        AshGleam.Marshal.to_gleam(AshGleam.TestTodo, todo)
-      )
+      destroy_todo_module.new(AshGleam.Marshal.to_gleam(AshGleam.TestTodo, todo))
 
     assert {:ok, true} = destroy_todo_module.run(builder)
 
@@ -186,5 +192,54 @@ defmodule AshGleam.FFITest do
              AshGleam.TestTodo
              |> Ash.Query.for_read(:get, %{id: todo.id})
              |> Ash.read_one()
+  end
+
+  test "create project ffi bridge stores embedded tasks and returns them as gleam tuples" do
+    create_project_module = AshGleam.GeneratedGleamHelper.module_atom("create_project")
+
+    # Gleam task tuples: {:task, id, title, completed, priority}
+    gleam_tasks = [
+      {:task, Ash.UUID.generate(), "Alpha", false, 1},
+      {:task, Ash.UUID.generate(), "Beta", true, 2}
+    ]
+
+    builder = create_project_module.new("My Project", gleam_tasks)
+
+    assert {:ok, {:project, id, "My Project", returned_tasks}} =
+             create_project_module.run(builder)
+
+    assert is_binary(id)
+    assert length(returned_tasks) == 2
+
+    titles = Enum.map(returned_tasks, fn {:task, _id, title, _c, _p} -> title end)
+    assert "Alpha" in titles
+    assert "Beta" in titles
+  end
+
+  test "get project ffi bridge returns project with all embedded tasks intact" do
+    tasks = [
+      %{title: "Alpha", completed: false, priority: 1},
+      %{title: "Beta", completed: true, priority: 3},
+      %{title: "Gamma", completed: false, priority: 2}
+    ]
+
+    project =
+      AshGleam.TestProject
+      |> Ash.Changeset.for_create(:create, %{name: "Fetch me", items: tasks})
+      |> Ash.create!()
+
+    get_project_module = AshGleam.GeneratedGleamHelper.module_atom("get_project")
+    builder = get_project_module.new(project.id)
+
+    assert {:ok, {:project, returned_id, "Fetch me", returned_tasks}} =
+             get_project_module.run(builder)
+
+    assert returned_id == project.id
+    assert length(returned_tasks) == 3
+
+    titles = Enum.map(returned_tasks, fn {:task, _id, title, _c, _p} -> title end)
+    assert "Alpha" in titles
+    assert "Beta" in titles
+    assert "Gamma" in titles
   end
 end

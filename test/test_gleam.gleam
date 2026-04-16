@@ -1,5 +1,8 @@
+import gleam/list
 import test_generated/src/destroy_todo
 import test_generated/src/first_completed_todo
+import test_generated/src/project_item.{type Project, Project}
+import test_generated/src/task.{type Task, Task}
 import test_generated/src/todo_item.{type Todo, Todo}
 
 pub fn mark_completed(item: Todo) -> Todo {
@@ -32,4 +35,9 @@ pub fn first_completed_from_elixir() -> Todo {
 pub fn delete_from_elixir(todo_item: Todo) -> Result(Bool, String) {
   destroy_todo.DestroyTodo(todo_item)
   |> destroy_todo.run
+}
+
+pub fn complete_all_tasks(project: Project) -> Project {
+  let completed = list.map(project.items, fn(item) { Task(..item, completed: True) })
+  Project(..project, items: completed)
 }

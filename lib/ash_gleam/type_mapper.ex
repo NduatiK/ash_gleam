@@ -26,6 +26,11 @@ defmodule AshGleam.TypeMapper do
   end
 
   @spec normalize(term()) :: {:ok, term()} | :error
+
+  # Pass-through for already-normalized forms produced by recursive normalize calls.
+  def normalize({:scalar, _} = normalized), do: {:ok, normalized}
+  def normalize({:resource, _} = normalized), do: {:ok, normalized}
+
   def normalize({:array, inner}) do
     with {:ok, inner} <- normalize(inner) do
       {:ok, {:array, inner}}

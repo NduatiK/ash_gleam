@@ -2,18 +2,27 @@ defmodule AshGleam.RuntimeTest do
   use ExUnit.Case, async: false
 
   setup do
-    try do
+    for {mod, table} <- [
+          {AshGleam.TestTodo, :ash_gleam_test_todos},
+          {AshGleam.TestProject, :ash_gleam_test_projects}
+        ] do
+      try do
+        Ash.DataLayer.Ets.stop(mod)
+      rescue
+        _ -> :ok
+      end
+
+      case :ets.whereis(table) do
+        :undefined -> :ok
+        t -> :ets.delete_all_objects(t)
+      end
+    end
+
+    on_exit(fn ->
       Ash.DataLayer.Ets.stop(AshGleam.TestTodo)
-    rescue
-      _ -> :ok
-    end
+      Ash.DataLayer.Ets.stop(AshGleam.TestProject)
+    end)
 
-    case :ets.whereis(:ash_gleam_test_todos) do
-      :undefined -> :ok
-      table -> :ets.delete_all_objects(table)
-    end
-
-    on_exit(fn -> Ash.DataLayer.Ets.stop(AshGleam.TestTodo) end)
     :ok
   end
 
@@ -141,5 +150,57 @@ defmodule AshGleam.RuntimeTest do
                AshGleam.TestTodo,
                {:todo, "todo-1", "Write docs", false, 1}
              )
+  end
+
+  test "marshal round-trips a project with embedded tasks" do
+    task1 = %AshGleam.TestTask{id: "t-1", title: "First", completed: false, priority: 1}
+    task2 = %AshGleam.TestTask{id: "t-2", title: "Second", completed: true, priority: 2}
+    project = %AshGleam.TestProject{id: "p-1", name: "My Project", items: [task1, task2]}
+
+    gleam_tuple = AshGleam.Marshal.to_gleam(AshGleam.TestProject, project)
+
+    assert {:project, "p-1", "My Project",
+            [
+              {:task, "t-1", "First", false, 1},
+              {:task, "t-2", "Second", true, 2}
+            ]} = gleam_tuple
+
+    restored = AshGleam.Marshal.from_gleam(AshGleam.TestProject, gleam_tuple)
+
+    assert %AshGleam.TestProject{id: "p-1", name: "My Project"} = restored
+
+    assert [
+             %AshGleam.TestTask{id: "t-1", title: "First", completed: false},
+             %AshGleam.TestTask{id: "t-2", title: "Second", completed: true}
+           ] = restored.items
+  end
+
+  test "gleam action receives project with embedded tasks and returns all tasks completed" do
+    task1 = %AshGleam.TestTask{id: "t-1", title: "Buy milk", completed: false, priority: 1}
+    task2 = %AshGleam.TestTask{id: "t-2", title: "Write tests", completed: false, priority: 2}
+    task3 = %AshGleam.TestTask{id: "t-3", title: "Ship it", completed: true, priority: 3}
+    project = %AshGleam.TestProject{id: "p-1", name: "Sprint 1", items: [task1, task2, task3]}
+
+    assert {:ok, result} = AshGleam.TestProject.complete_all_tasks(%{project: project})
+
+    assert %AshGleam.TestProject{id: "p-1", name: "Sprint 1"} = result
+    assert length(result.items) == 3
+    assert Enum.all?(result.items, & &1.completed)
+    assert Enum.map(result.items, & &1.title) == ["Buy milk", "Write tests", "Ship it"]
+  end
+
+  test "all task ids and order are preserved through the Gleam round-trip" do
+    tasks =
+      for i <- 1..3 do
+        %AshGleam.TestTask{id: "t-#{i}", title: "Task #{i}", completed: false, priority: i}
+      end
+
+    project = %AshGleam.TestProject{id: "p-1", name: "Ordering test", items: tasks}
+
+    assert {:ok, returned} = AshGleam.TestProject.complete_all_tasks(%{project: project})
+
+    assert returned.id == project.id
+    assert Enum.map(returned.items, & &1.id) == Enum.map(tasks, & &1.id)
+    assert Enum.all?(returned.items, & &1.completed)
   end
 end
