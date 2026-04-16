@@ -5,6 +5,7 @@ defmodule AshGleam.TestDomain do
 
   resources do
     resource AshGleam.TestTodo
+    resource AshGleam.TestEmptyResource
   end
 
   gleam_ffi do

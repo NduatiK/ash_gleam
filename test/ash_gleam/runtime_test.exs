@@ -25,15 +25,18 @@ defmodule AshGleam.RuntimeTest do
     assert {:ok, 5} = AshGleam.TestTodo.safe_add(%{a: 2, b: 3})
 
     assert {:error, error} = AshGleam.TestTodo.safe_add(%{a: -1, b: 3})
-    assert %Ash.Error.Unknown{errors: [%Ash.Error.Unknown.UnknownError{error: "negative inputs are not allowed"}]} =
+
+    assert %Ash.Error.Unknown{
+             errors: [%Ash.Error.Unknown.UnknownError{error: "negative inputs are not allowed"}]
+           } =
              error
   end
 
   test "manual resource gleam action marshals resource values in and out" do
     todo =
       AshGleam.TestTodo
-      |> Ash.Changeset.for_create(:create, %{title: "Ship tests"}, domain: AshGleam.TestDomain)
-      |> Ash.create!(domain: AshGleam.TestDomain)
+      |> Ash.Changeset.for_create(:create, %{title: "Ship tests"})
+      |> Ash.create!()
 
     assert {:ok, updated} = AshGleam.TestTodo.mark_completed(%{todo: todo})
     assert %AshGleam.TestTodo{id: id, title: "Ship tests", completed: true} = updated
@@ -43,32 +46,30 @@ defmodule AshGleam.RuntimeTest do
   test "gleam actions support ok result types for resources" do
     todo =
       AshGleam.TestTodo
-      |> Ash.Changeset.for_create(:create, %{title: "Ship tests"}, domain: AshGleam.TestDomain)
-      |> Ash.create!(domain: AshGleam.TestDomain)
+      |> Ash.Changeset.for_create(:create, %{title: "Ship tests"})
+      |> Ash.create!()
 
     assert {:ok, updated} = AshGleam.TestTodo.safe_mark_completed(%{todo: todo})
     assert %AshGleam.TestTodo{id: id, title: "Ship tests", completed: true} = updated
     assert id == todo.id
   end
 
+  test "gleam actions on empty resources" do
+    assert {:ok, 3} = AshGleam.TestEmptyResource.add(%{a: 1, b: 2})
+  end
+
   test "gleam action can fetch resource data from elixir and return the generated todo record" do
     AshGleam.TestTodo
-    |> Ash.Changeset.for_create(:create, %{title: "Zulu", completed: true},
-      domain: AshGleam.TestDomain
-    )
-    |> Ash.create!(domain: AshGleam.TestDomain)
+    |> Ash.Changeset.for_create(:create, %{title: "Zulu", completed: true})
+    |> Ash.create!()
 
     AshGleam.TestTodo
-    |> Ash.Changeset.for_create(:create, %{title: "AAA Alpha", completed: true},
-      domain: AshGleam.TestDomain
-    )
-    |> Ash.create!(domain: AshGleam.TestDomain)
+    |> Ash.Changeset.for_create(:create, %{title: "AAA Alpha", completed: true})
+    |> Ash.create!()
 
     AshGleam.TestTodo
-    |> Ash.Changeset.for_create(:create, %{title: "Incomplete", completed: false},
-      domain: AshGleam.TestDomain
-    )
-    |> Ash.create!(domain: AshGleam.TestDomain)
+    |> Ash.Changeset.for_create(:create, %{title: "Incomplete", completed: false})
+    |> Ash.create!()
 
     assert {:ok, fetched} = AshGleam.TestTodo.first_completed_from_elixir(%{})
     assert %AshGleam.TestTodo{title: "AAA Alpha", completed: true} = fetched
@@ -77,8 +78,8 @@ defmodule AshGleam.RuntimeTest do
   test "resource-returning gleam actions stay pure until diffed and persisted through Ash" do
     original =
       AshGleam.TestTodo
-      |> Ash.Changeset.for_create(:create, %{title: "Persist me"}, domain: AshGleam.TestDomain)
-      |> Ash.create!(domain: AshGleam.TestDomain)
+      |> Ash.Changeset.for_create(:create, %{title: "Persist me"})
+      |> Ash.create!()
 
     assert original.completed == false
 
@@ -87,16 +88,16 @@ defmodule AshGleam.RuntimeTest do
 
     assert {:ok, %AshGleam.TestTodo{completed: false}} =
              AshGleam.TestTodo
-             |> Ash.Query.for_read(:get, %{id: original.id}, domain: AshGleam.TestDomain)
-             |> Ash.read_one(domain: AshGleam.TestDomain)
+             |> Ash.Query.for_read(:get, %{id: original.id})
+             |> Ash.read_one()
 
     attrs = AshGleam.Diff.resource_changes(original, proposed)
     assert attrs == %{completed: true}
 
     persisted =
       original
-      |> Ash.Changeset.for_update(:update, attrs, domain: AshGleam.TestDomain)
-      |> Ash.update!(domain: AshGleam.TestDomain)
+      |> Ash.Changeset.for_update(:update, attrs)
+      |> Ash.update!()
 
     assert persisted.completed == true
     assert persisted.id == original.id

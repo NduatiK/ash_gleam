@@ -42,15 +42,15 @@ defmodule AshGleam.FFITest do
 
     assert {:ok, %AshGleam.TestTodo{id: ^id, title: "Created from ffi", completed: false}} =
              AshGleam.TestTodo
-             |> Ash.Query.for_read(:get, %{id: id}, domain: AshGleam.TestDomain)
-             |> Ash.read_one(domain: AshGleam.TestDomain)
+             |> Ash.Query.for_read(:get, %{id: id})
+             |> Ash.read_one()
   end
 
   test "generated get ffi bridge returns the requested resource", %{bridge: _bridge} do
     todo =
       AshGleam.TestTodo
-      |> Ash.Changeset.for_create(:create, %{title: "Fetch me"}, domain: AshGleam.TestDomain)
-      |> Ash.create!(domain: AshGleam.TestDomain)
+      |> Ash.Changeset.for_create(:create, %{title: "Fetch me"})
+      |> Ash.create!()
 
     get_todo_module = AshGleam.GeneratedGleamHelper.module_atom("get_todo")
     builder = get_todo_module.new(todo.id)
@@ -67,19 +67,19 @@ defmodule AshGleam.FFITest do
     |> Ash.Changeset.for_create(:create, %{title: "Zulu", completed: true},
       domain: AshGleam.TestDomain
     )
-    |> Ash.create!(domain: AshGleam.TestDomain)
+    |> Ash.create!()
 
     AshGleam.TestTodo
     |> Ash.Changeset.for_create(:create, %{title: "AAA Alpha", completed: true},
       domain: AshGleam.TestDomain
     )
-    |> Ash.create!(domain: AshGleam.TestDomain)
+    |> Ash.create!()
 
     AshGleam.TestTodo
     |> Ash.Changeset.for_create(:create, %{title: "Beta", completed: false},
       domain: AshGleam.TestDomain
     )
-    |> Ash.create!(domain: AshGleam.TestDomain)
+    |> Ash.create!()
 
     first_completed_module = AshGleam.GeneratedGleamHelper.module_atom("first_completed_todo")
 
@@ -94,13 +94,13 @@ defmodule AshGleam.FFITest do
     |> Ash.Changeset.for_create(:create, %{title: "! B task", completed: false},
       domain: AshGleam.TestDomain
     )
-    |> Ash.create!(domain: AshGleam.TestDomain)
+    |> Ash.create!()
 
     AshGleam.TestTodo
     |> Ash.Changeset.for_create(:create, %{title: "! A task", completed: true},
       domain: AshGleam.TestDomain
     )
-    |> Ash.create!(domain: AshGleam.TestDomain)
+    |> Ash.create!()
 
     list_todos_module = AshGleam.GeneratedGleamHelper.module_atom("list_todos")
     todo_item_module = AshGleam.GeneratedGleamHelper.module_atom("todo_item")
@@ -124,19 +124,19 @@ defmodule AshGleam.FFITest do
     |> Ash.Changeset.for_create(:create, %{title: "Keep me", completed: false},
       domain: AshGleam.TestDomain
     )
-    |> Ash.create!(domain: AshGleam.TestDomain)
+    |> Ash.create!()
 
     AshGleam.TestTodo
     |> Ash.Changeset.for_create(:create, %{title: "Filter target", completed: true},
       domain: AshGleam.TestDomain
     )
-    |> Ash.create!(domain: AshGleam.TestDomain)
+    |> Ash.create!()
 
     AshGleam.TestTodo
     |> Ash.Changeset.for_create(:create, %{title: "Filter target", completed: false},
       domain: AshGleam.TestDomain
     )
-    |> Ash.create!(domain: AshGleam.TestDomain)
+    |> Ash.create!()
 
     list_todos_module = AshGleam.GeneratedGleamHelper.module_atom("list_todos")
     todo_item_module = AshGleam.GeneratedGleamHelper.module_atom("todo_item")
@@ -160,7 +160,9 @@ defmodule AshGleam.FFITest do
              title == "Filter target"
            end)
 
-    assert Enum.sort(Enum.map(results, fn {:todo, _id, _title, completed,_priority} -> completed end)) == [
+    assert Enum.sort(
+             Enum.map(results, fn {:todo, _id, _title, completed, _priority} -> completed end)
+           ) == [
              false,
              true
            ]
