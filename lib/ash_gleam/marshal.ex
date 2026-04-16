@@ -54,7 +54,11 @@ defmodule AshGleam.Marshal do
       |> AshGleam.Resource.Info.fields()
       |> Enum.map(fn field ->
         field_value = Map.get(value, field.name)
-        input!(field.type, field_value, allow_nil?: field.allow_nil?)
+
+        input!(field.type, field_value,
+          allow_nil?: field.allow_nil?,
+          constraints: field.constraints
+        )
       end)
 
     List.to_tuple([constructor | fields])
@@ -76,7 +80,14 @@ defmodule AshGleam.Marshal do
     |> AshGleam.Resource.Info.fields()
     |> Enum.zip(raw_values)
     |> Enum.reduce(%{}, fn {field, raw}, acc ->
-      Map.put(acc, field.name, output!(field.type, raw, allow_nil?: field.allow_nil?))
+      Map.put(
+        acc,
+        field.name,
+        output!(field.type, raw,
+          allow_nil?: field.allow_nil?,
+          constraints: field.constraints
+        )
+      )
     end)
     |> build_resource_map(resource)
   end
@@ -87,17 +98,23 @@ defmodule AshGleam.Marshal do
     Enum.map(value, &marshal(inner, &1, [], direction))
   end
 
-  defp marshal(type, value, _opts, :to_gleam) when is_atom(type) do
-    case AshGleam.TypeMapper.normalize(type) do
+  defp marshal(type, value, opts, :to_gleam) when is_atom(type) do
+    constraints = Keyword.get(opts, :constraints, [])
+
+    case AshGleam.TypeMapper.normalize(type, constraints) do
       {:ok, {:scalar, _}} -> value
+      {:ok, {:atom_enum, _}} -> value
       {:ok, {:resource, resource}} -> to_gleam(resource, value)
       :error -> raise ArgumentError, "unsupported type #{inspect(type)}"
     end
   end
 
-  defp marshal(type, value, _opts, :from_gleam) when is_atom(type) do
-    case AshGleam.TypeMapper.normalize(type) do
+  defp marshal(type, value, opts, :from_gleam) when is_atom(type) do
+    constraints = Keyword.get(opts, :constraints, [])
+
+    case AshGleam.TypeMapper.normalize(type, constraints) do
       {:ok, {:scalar, _}} -> value
+      {:ok, {:atom_enum, _}} -> value
       {:ok, {:resource, resource}} -> from_gleam(resource, value)
       :error -> raise ArgumentError, "unsupported type #{inspect(type)}"
     end

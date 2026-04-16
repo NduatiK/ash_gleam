@@ -19,7 +19,7 @@ defmodule AshGleam.TestTask do
   actions do
     create :create do
       primary? true
-      accept [:id, :title, :completed, :priority]
+      accept [:title, :completed, :priority]
     end
   end
 end

@@ -10,7 +10,7 @@ defmodule AshGleam.Transformers.ValidateResource do
     unsupported =
       resource
       |> Ash.Resource.Info.public_attributes()
-      |> Enum.reject(&AshGleam.TypeMapper.supported?(&1.type))
+      |> Enum.reject(&AshGleam.TypeMapper.supported?(&1.type, &1.constraints))
 
     case unsupported do
       [] ->
@@ -21,7 +21,7 @@ defmodule AshGleam.Transformers.ValidateResource do
          Spark.Error.DslError.exception(
            module: Spark.Dsl.Verifier.get_persisted(resource, :module),
            message:
-             "AshGleam.Resource only supports scalar, array, and AshGleam-enabled resource fields. Unsupported fields: #{Enum.map_join(attrs, ", ", &to_string(&1.name))}"
+             "AshGleam.Resource only supports scalar, constrained atom, array, and AshGleam-enabled resource fields. Unsupported fields: #{Enum.map_join(attrs, ", ", &to_string(&1.name))}"
          )}
     end
   end

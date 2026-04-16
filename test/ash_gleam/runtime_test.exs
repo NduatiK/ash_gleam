@@ -134,13 +134,23 @@ defmodule AshGleam.RuntimeTest do
     assert AshGleam.resource_changes(original, proposed) == %{completed: true}
   end
 
-  test "marshal handles scalar, nullable, array, and resource values" do
+  test "marshal handles scalar, nullable, array, resource, and atom enum values" do
     todo = %AshGleam.TestTodo{id: "todo-1", title: "Write docs", completed: false}
+    atom_constraints = [one_of: [:x, :o]]
 
     assert AshGleam.Marshal.input!(:string, "abc", allow_nil?: false) == "abc"
     assert AshGleam.Marshal.input!(:string, nil, allow_nil?: true) == :none
     assert AshGleam.Marshal.output!(:string, :none, allow_nil?: true) == nil
     assert AshGleam.Marshal.output!({:array, :integer}, [1, 2, 3]) == [1, 2, 3]
+
+    assert AshGleam.Marshal.input!(:atom, :x, allow_nil?: false, constraints: atom_constraints) ==
+             :x
+
+    assert AshGleam.Marshal.output!(:atom, :o, allow_nil?: false, constraints: atom_constraints) ==
+             :o
+
+    assert AshGleam.Marshal.output!(:atom, :none, allow_nil?: true, constraints: atom_constraints) ==
+             nil
 
     assert AshGleam.Marshal.to_gleam(AshGleam.TestTodo, todo) ==
              {:todo, "todo-1", "Write docs", false, 1}
@@ -149,6 +159,56 @@ defmodule AshGleam.RuntimeTest do
              AshGleam.Marshal.from_gleam(
                AshGleam.TestTodo,
                {:todo, "todo-1", "Write docs", false, 1}
+             )
+  end
+
+  test "marshal round-trips atom enum fields on resources" do
+    game = %AshGleam.TestGame{
+      id: "game-1",
+      name: "Tic Tac Toe",
+      current_player: :x,
+      status: :in_progress,
+      winner: :draw
+    }
+
+    assert AshGleam.Marshal.to_gleam(AshGleam.TestGame, game) ==
+             {:game, "game-1", "Tic Tac Toe", :x, :in_progress, :draw}
+
+    assert %AshGleam.TestGame{
+             id: "game-1",
+             name: "Tic Tac Toe",
+             current_player: :x,
+             status: :in_progress,
+             winner: :draw
+           } =
+             AshGleam.Marshal.from_gleam(
+               AshGleam.TestGame,
+               {:game, "game-1", "Tic Tac Toe", :x, :in_progress, :draw}
+             )
+  end
+
+  test "marshal round-trips nullable atom enum fields on resources" do
+    game = %AshGleam.TestGame{
+      id: "game-2",
+      name: "Tic Tac Toe",
+      current_player: :o,
+      status: :finished,
+      winner: nil
+    }
+
+    assert AshGleam.Marshal.to_gleam(AshGleam.TestGame, game) ==
+             {:game, "game-2", "Tic Tac Toe", :o, :finished, :none}
+
+    assert %AshGleam.TestGame{
+             id: "game-2",
+             name: "Tic Tac Toe",
+             current_player: :o,
+             status: :finished,
+             winner: nil
+           } =
+             AshGleam.Marshal.from_gleam(
+               AshGleam.TestGame,
+               {:game, "game-2", "Tic Tac Toe", :o, :finished, :none}
              )
   end
 

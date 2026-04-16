@@ -17,26 +17,22 @@ defmodule Example.Games.TicTacToe do
     uuid_primary_key :id
 
     attribute :board, {:array, :atom} do
-      public? true
-      constraints items: [one_of: [:x, :o, nil]]
+      constraints items: [one_of: [:x, :o]]
       default [nil, nil, nil, nil, nil, nil, nil, nil, nil]
     end
 
   attribute :current_player, :atom do
-    public? true
     allow_nil? false
     constraints one_of: [:x, :o]
     default :x
   end
 
   attribute :winner, :atom do
-    public? true
     allow_nil? true
     constraints one_of: [:x, :o, :draw]
   end
 
   attribute :status, :atom do
-    public? true
     allow_nil? false
     constraints one_of: [:in_progress, :finished]
     default :in_progress

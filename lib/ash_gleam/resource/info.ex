@@ -45,6 +45,6 @@ defmodule AshGleam.Resource.Info do
   def fields(resource) do
     resource
     |> Ash.Resource.Info.public_attributes()
-    |> Enum.filter(&AshGleam.TypeMapper.supported?(&1.type))
+    |> Enum.filter(&AshGleam.TypeMapper.supported?(&1.type, &1.constraints))
   end
 end

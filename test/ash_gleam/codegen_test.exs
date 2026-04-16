@@ -1,5 +1,6 @@
 defmodule AshGleam.CodegenTest do
   use ExUnit.Case, async: false
+  import ExUnit.CaptureIO
 
   test "manifest includes ash_gleam resources, ffi exports, and gleam actions" do
     manifest = AshGleam.manifest(otp_app: :ash_gleam)
@@ -14,7 +15,7 @@ defmodule AshGleam.CodegenTest do
              %{ffi_name: :create_todo, kind: :create},
              %{ffi_name: :get_todo, kind: :get},
              %{ffi_name: :first_completed_todo, kind: :get},
-             %{ffi_name: :destroy_todo, kind: :destroy}
+             %{ffi_name: :destroy_todo, kind: :destroy},
              %{ffi_name: :create_project, kind: :create},
              %{ffi_name: :get_project, kind: :get}
            ] = manifest.domains[domain_key].ffi
@@ -53,6 +54,137 @@ defmodule AshGleam.CodegenTest do
 
     assert File.exists?(bridge_path)
     assert File.read!(bridge_path) =~ "defmodule AshGleam.TestDomain.Generated do"
+  end
+
+  test "codegen emits Gleam union types for constrained atom fields" do
+    suffix = System.unique_integer([:positive])
+    domain = Module.concat([AshGleam, Dynamic, :"AtomDomain#{suffix}"])
+    resource = Module.concat([AshGleam, Dynamic, :"AtomResource#{suffix}"])
+
+    quoted =
+      quote do
+        defmodule unquote(domain) do
+          use Ash.Domain, otp_app: :ash_gleam
+
+          resources do
+            resource unquote(resource)
+          end
+        end
+
+        defmodule unquote(resource) do
+          use Ash.Resource,
+            otp_app: :ash_gleam,
+            domain: unquote(domain),
+            data_layer: Ash.DataLayer.Ets,
+            extensions: [AshGleam.Resource]
+
+          ets do
+            private? true
+          end
+
+          gleam do
+            type_name "TicTacToe"
+            module_name "tic_tac_toe"
+          end
+
+          attributes do
+            uuid_primary_key :id
+
+            attribute :current_player, :atom do
+              public? true
+              allow_nil? false
+              constraints one_of: [:x, :o]
+              default :x
+            end
+
+            attribute :winner, :atom do
+              public? true
+              allow_nil? true
+              constraints one_of: [:x, :o, :draw]
+            end
+          end
+        end
+      end
+
+    compiled = Code.compile_quoted(quoted)
+    assert length(compiled) >= 2
+
+    tmp = Path.join(System.tmp_dir!(), "ash_gleam_codegen_atoms_#{suffix}")
+
+    on_exit(fn ->
+      File.rm_rf(tmp)
+      Application.put_env(:ash_gleam, :ash_domains, [AshGleam.TestDomain])
+    end)
+
+    Application.put_env(:ash_gleam, :ash_domains, [domain])
+
+    assert :ok = AshGleam.codegen(otp_app: :ash_gleam, output: tmp)
+
+    gleam_src = AshGleam.Info.gleam_dir(output: tmp)
+    generated = File.read!(Path.join(gleam_src, "tic_tac_toe.gleam"))
+    current_player_types = File.read!(Path.join(gleam_src, "current_player.gleam"))
+    winner_types = File.read!(Path.join(gleam_src, "winner.gleam"))
+
+    refute generated =~ "pub type CurrentPlayer {\n  X\n  O\n}"
+    refute generated =~ "pub type Winner {\n  X\n  O\n  Draw\n}"
+
+    assert generated =~
+             "import #{AshGleam.Info.gleam_module_prefix(output: tmp)}/current_player.{type CurrentPlayer}"
+
+    assert generated =~
+             "import #{AshGleam.Info.gleam_module_prefix(output: tmp)}/winner.{type Winner}"
+
+    assert generated =~ "current_player: CurrentPlayer"
+    assert generated =~ "winner: Option(Winner)"
+
+    assert current_player_types =~ "pub type CurrentPlayer {\n  X\n  O\n}"
+    assert winner_types =~ "pub type Winner {\n  X\n  O\n  Draw\n}"
+  end
+
+  test "resource validation rejects atom fields without one_of constraint" do
+    suffix = System.unique_integer([:positive])
+    domain = Module.concat([AshGleam, Dynamic, :"InvalidAtomDomain#{suffix}"])
+    resource = Module.concat([AshGleam, Dynamic, :"InvalidAtomResource#{suffix}"])
+
+    quoted =
+      quote do
+        defmodule unquote(domain) do
+          use Ash.Domain, otp_app: :ash_gleam
+
+          resources do
+            resource unquote(resource)
+          end
+        end
+
+        defmodule unquote(resource) do
+          use Ash.Resource,
+            otp_app: :ash_gleam,
+            domain: unquote(domain),
+            data_layer: Ash.DataLayer.Ets,
+            extensions: [AshGleam.Resource]
+
+          ets do
+            private? true
+          end
+
+          gleam do
+            type_name "BrokenAtom"
+          end
+
+          attributes do
+            uuid_primary_key :id
+            attribute :status, :atom, public?: true
+          end
+        end
+      end
+
+    output =
+      capture_io(:stderr, fn ->
+        compiled = Code.compile_quoted(quoted)
+        assert length(compiled) >= 2
+      end)
+
+    assert output =~ "Unsupported fields: status"
   end
 
   test "test env codegen defaults write under test/generated/ash_gleam" do

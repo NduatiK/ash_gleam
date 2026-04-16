@@ -39,6 +39,7 @@ defmodule AshGleam.Codegen.Manifest do
         %{
           name: field.name,
           type: field.type,
+          constraints: field.constraints,
           allow_nil?: field.allow_nil?,
           primary_key?: field.primary_key?,
           writable?: field.writable?,

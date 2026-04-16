@@ -48,6 +48,52 @@ defmodule AshGleam.ValidationTest do
     assert output =~ "Unsupported fields: metadata"
   end
 
+  test "resource validation rejects atom fields without one_of constraints" do
+    suffix = System.unique_integer([:positive])
+    domain = Module.concat([AshGleam, Dynamic, :"AtomDomain#{suffix}"])
+    resource = Module.concat([AshGleam, Dynamic, :"AtomResource#{suffix}"])
+
+    quoted =
+      quote do
+        defmodule unquote(domain) do
+          use Ash.Domain, otp_app: :ash_gleam
+
+          resources do
+            resource unquote(resource)
+          end
+        end
+
+        defmodule unquote(resource) do
+          use Ash.Resource,
+            otp_app: :ash_gleam,
+            domain: unquote(domain),
+            data_layer: Ash.DataLayer.Ets,
+            extensions: [AshGleam.Resource]
+
+          ets do
+            private? true
+          end
+
+          gleam do
+            type_name "BrokenAtom"
+          end
+
+          attributes do
+            uuid_primary_key :id
+            attribute :status, :atom, public?: true
+          end
+        end
+      end
+
+    output =
+      capture_io(:stderr, fn ->
+        compiled = Code.compile_quoted(quoted)
+        assert length(compiled) >= 2
+      end)
+
+    assert output =~ "Unsupported fields: status"
+  end
+
   test "gleam action validation rejects wrong run arity" do
     suffix = System.unique_integer([:positive])
     domain = Module.concat([AshGleam, Dynamic, :"WrongArityDomain#{suffix}"])

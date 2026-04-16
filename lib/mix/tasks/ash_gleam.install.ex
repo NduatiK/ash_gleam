@@ -119,7 +119,6 @@ if Code.ensure_loaded?(Igniter) do
           {:ok, {:code, [gleam_artefacts, gleam_build]}}
 
         zipper ->
-
           with {:ok, zipper} <- Igniter.Code.List.append_new_to_list(zipper, gleam_artefacts),
                {:ok, zipper} <- Igniter.Code.List.append_new_to_list(zipper, gleam_build) do
             {:ok, zipper}

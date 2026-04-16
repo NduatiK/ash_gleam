@@ -38,6 +38,7 @@ pub fn delete_from_elixir(todo_item: Todo) -> Result(Bool, String) {
 }
 
 pub fn complete_all_tasks(project: Project) -> Project {
-  let completed = list.map(project.items, fn(item) { Task(..item, completed: True) })
+  let completed =
+    list.map(project.items, fn(item) { Task(..item, completed: True) })
   Project(..project, items: completed)
 }

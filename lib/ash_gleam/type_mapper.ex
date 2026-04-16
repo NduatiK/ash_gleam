@@ -6,6 +6,7 @@ defmodule AshGleam.TypeMapper do
   @moduledoc false
 
   @scalar_types [:string, :integer, :boolean, :float, :decimal, :uuid]
+  @type_constraints [:one_of]
   @scalar_type_modules %{
     Ash.Type.String => :string,
     Ash.Type.Integer => :integer,
@@ -15,31 +16,48 @@ defmodule AshGleam.TypeMapper do
     Ash.Type.UUID => :uuid
   }
 
-  @spec supported?(term()) :: boolean()
-  def supported?(type) do
-    case normalize(type) do
+  @spec supported?(term(), Keyword.t()) :: boolean()
+  def supported?(type, constraints \\ []) do
+    case normalize(type, constraints) do
       {:ok, {:scalar, _}} -> true
+      {:ok, {:atom_enum, _}} -> true
       {:ok, {:array, inner}} -> supported?(inner)
       {:ok, {:resource, module}} -> ash_gleam_resource?(module)
       :error -> false
     end
   end
 
-  @spec normalize(term()) :: {:ok, term()} | :error
+  @spec normalize(term(), Keyword.t()) :: {:ok, term()} | :error
 
   # Pass-through for already-normalized forms produced by recursive normalize calls.
-  def normalize({:scalar, _} = normalized), do: {:ok, normalized}
-  def normalize({:resource, _} = normalized), do: {:ok, normalized}
+  def normalize({:scalar, _} = normalized, _constraints), do: {:ok, normalized}
+  def normalize({:atom_enum, _} = normalized, _constraints), do: {:ok, normalized}
+  def normalize({:resource, _} = normalized, _constraints), do: {:ok, normalized}
 
-  def normalize({:array, inner}) do
-    with {:ok, inner} <- normalize(inner) do
+  def normalize({:array, inner}, constraints) do
+    item_constraints =
+      constraints
+      |> Keyword.get(:items, [])
+      |> List.wrap()
+
+    with {:ok, inner} <- normalize(inner, item_constraints) do
       {:ok, {:array, inner}}
     end
   end
 
-  def normalize(type) when type in @scalar_types, do: {:ok, {:scalar, type}}
+  def normalize(type, constraints) when type in @scalar_types, do: {:ok, {:scalar, type}}
 
-  def normalize(type) when is_atom(type) do
+  def normalize(:atom, constraints) do
+    case Keyword.take(constraints, @type_constraints) do
+      [one_of: values] when is_list(values) and values != [] ->
+        {:ok, {:atom_enum, values}}
+
+      _ ->
+        :error
+    end
+  end
+
+  def normalize(type, constraints) when is_atom(type) do
     cond do
       type in @scalar_types ->
         {:ok, {:scalar, type}}
@@ -51,20 +69,28 @@ defmodule AshGleam.TypeMapper do
         {:ok, {:resource, type}}
 
       true ->
-        :error
+        normalize_atom_type(type, constraints)
     end
   end
 
-  def normalize(_), do: :error
+  def normalize(_, _constraints), do: :error
 
-  @spec ash_type(term()) :: {:ok, {term(), Keyword.t()}} | :error
-  def ash_type(type) do
-    case normalize(type) do
+  @spec ash_type(term(), Keyword.t()) :: {:ok, {term(), Keyword.t()}} | :error
+  def ash_type(type, constraints \\ []) do
+    case normalize(type, constraints) do
       {:ok, {:scalar, scalar}} ->
         {:ok, {scalar, []}}
 
+      {:ok, {:atom_enum, values}} ->
+        {:ok, {:atom, one_of: values}}
+
       {:ok, {:array, inner}} ->
-        with {:ok, {inner_type, inner_constraints}} <- ash_type(inner) do
+        item_constraints =
+          constraints
+          |> Keyword.get(:items, [])
+          |> List.wrap()
+
+        with {:ok, {inner_type, inner_constraints}} <- ash_type(inner, item_constraints) do
           {:ok, {{:array, inner_type}, items: inner_constraints}}
         end
 
@@ -81,14 +107,16 @@ defmodule AshGleam.TypeMapper do
 
   def gleam_type(type, opts) do
     nullable? = Keyword.get(opts, :allow_nil?, false)
+    constraints = Keyword.get(opts, :constraints, [])
+    name = Keyword.get(opts, :name)
 
-    with {:ok, inner} <- do_gleam_type(type) do
+    with {:ok, inner} <- do_gleam_type(name, type, constraints) do
       {:ok, maybe_option(inner, nullable?)}
     end
   end
 
-  defp do_gleam_type(type) do
-    case normalize(type) do
+  defp do_gleam_type(name, type, constraints) do
+    case normalize(type, constraints) do
       {:ok, {:scalar, :string}} ->
         {:ok, "String"}
 
@@ -107,8 +135,17 @@ defmodule AshGleam.TypeMapper do
       {:ok, {:scalar, :uuid}} ->
         {:ok, "String"}
 
+      {:ok, {:atom_enum, values}} ->
+        {:ok, gleam_atom_enum_type_name(name, values)}
+
       {:ok, {:array, inner}} ->
-        with {:ok, inner} <- do_gleam_type(inner), do: {:ok, "List(#{inner})"}
+        item_constraints =
+          constraints
+          |> Keyword.get(:items, [])
+          |> List.wrap()
+
+        with {:ok, inner} <- do_gleam_type(name, inner, item_constraints),
+             do: {:ok, "List(#{inner})"}
 
       {:ok, {:resource, module}} ->
         {:ok, AshGleam.Resource.Info.gleam_type_name!(module)}
@@ -120,6 +157,33 @@ defmodule AshGleam.TypeMapper do
 
   defp maybe_option(inner, true), do: "Option(#{inner})"
   defp maybe_option(inner, false), do: inner
+
+  defp normalize_atom_type(type, constraints) do
+    case Keyword.take(constraints, @type_constraints) do
+      [one_of: values] when is_list(values) and values != [] ->
+        {:ok, {:atom_enum, values}}
+
+      _ ->
+        if ash_gleam_resource?(type) do
+          {:ok, {:resource, type}}
+        else
+          :error
+        end
+    end
+  end
+
+  defp gleam_atom_enum_type_name(name, _values) when is_atom(name) do
+    name
+    |> Atom.to_string()
+    |> Macro.camelize()
+  end
+
+  defp gleam_atom_enum_type_name(nil, values) do
+    values
+    |> Enum.reject(&is_nil/1)
+    |> Enum.map(&(&1 |> Atom.to_string() |> Macro.camelize()))
+    |> Enum.join()
+  end
 
   @spec scalar_types() :: [atom()]
   def scalar_types, do: @scalar_types
