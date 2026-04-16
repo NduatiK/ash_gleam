@@ -4,7 +4,7 @@ SPDX-FileCopyrightText: 2026 Nduati Kuria
 SPDX-License-Identifier: MIT
 -->
 
-<img src="https://github.com/NduatiK/ash_gleam/blob/main/logos/ash-typescript.png?raw=true" alt="Logo" width="300"/>
+<img src="https://github.com/NduatiK/ash_gleam/blob/main/logo.png?raw=true" alt="Logo" width="300"/>
 
 ![Elixir CI](https://github.com/NduatiK/ash_gleam/workflows/CI/badge.svg)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -21,9 +21,12 @@ Generate type-safe Gleam clients directly from your Elixir Ash resources, ensuri
 ## TODO
 
 - Fix readme
+- Test calling gleam code that calls ash code
+- Ensure ash code called from gleam returns Results
 - Experiment with embedded resources (the most likely usecase)
 - Support destroy actions
 - Handle nested types eg when nesting embedded resources
+- 
 
 ## Features
 
