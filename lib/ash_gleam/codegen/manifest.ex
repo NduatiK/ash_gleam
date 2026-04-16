@@ -94,11 +94,13 @@ defmodule AshGleam.Codegen.Manifest do
         resource: inspect(resource),
         action_name: action.name,
         return_type: inspect_type(action.return_type),
+        constraints: action.constraints,
         arguments:
           Enum.map(action.arguments, fn argument ->
             %{
               name: argument.name,
               type: inspect_type(argument.type),
+              constraints: argument.constraints,
               allow_nil?: argument.allow_nil?
             }
           end),

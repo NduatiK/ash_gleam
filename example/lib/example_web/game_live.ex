@@ -86,8 +86,8 @@ defmodule ExampleWeb.Example.GameLive do
     ~H"""
     <style>
       .grid {
-        height: 750px;
-        width: 750px;
+        height: 600px;
+        width: 600px;
         display: grid;
         grid-template-columns: 1fr 1fr 1fr;
         grid-template-rows: 1fr 1fr 1fr;
@@ -97,9 +97,9 @@ defmodule ExampleWeb.Example.GameLive do
       .grid > div {
         background-color: #fffefb;
         text-align: center;
-        padding: 61px 0px;
-        font-size: 100px;
-        font-family: verdana;
+        padding: 40px 0px;
+        font-size: 60px;
+        font-family: monospace;
       }
       .mark-x {
         color: #ffaff3;

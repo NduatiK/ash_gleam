@@ -30,25 +30,30 @@ defmodule AshGleam.Transformers.GenerateManualActions do
   end
 
   defp build_action(action, resource) do
-    with {:ok, args} <- build_arguments(action.arguments, resource),
-         {:ok, {return_type, constraints}} <- ash_type(action.return_type, resource) do
-      Transformer.build_entity(
-        Ash.Resource.Dsl,
-        [:actions],
-        :action,
-        name: action.name,
-        returns: return_type,
-        constraints: constraints,
-        allow_nil?: action.allow_nil?,
-        arguments: args,
-        run: {AshGleam.ManualActionRunner, [config: runtime_config(action)]}
-      )
+    with {:ok, args} <- build_arguments(action.arguments, resource) do
+      case ash_type(action.return_type, action.constraints, resource) do
+        {:ok, {return_type, constraints}} ->
+          Transformer.build_entity(
+            Ash.Resource.Dsl,
+            [:actions],
+            :action,
+            name: action.name,
+            returns: return_type,
+            constraints: constraints,
+            allow_nil?: action.allow_nil?,
+            arguments: args,
+            run: {AshGleam.ManualActionRunner, [config: runtime_config(action)]}
+          )
+
+        :error ->
+          {:error, unsupported_type_message(action.return_type, action.constraints, :return)}
+      end
     end
   end
 
   defp build_arguments(arguments, resource) do
     Enum.reduce_while(arguments, {:ok, []}, fn argument, {:ok, built} ->
-      case ash_type(argument.type, resource) do
+      case ash_type(argument.type, argument.constraints, resource) do
         {:ok, {type, constraints}} ->
           case Transformer.build_entity(
                  Ash.Resource.Dsl,
@@ -67,16 +72,39 @@ defmodule AshGleam.Transformers.GenerateManualActions do
           end
 
         :error ->
-          {:halt, {:error, "unsupported argument type #{inspect(argument.type)}"}}
+          {:halt,
+           {:error, unsupported_type_message(argument.type, argument.constraints, :argument)}}
       end
     end)
   end
 
-  defp ash_type(type, resource) when type == resource do
+  defp ash_type(type, _constraints, resource) when type == resource do
     {:ok, {:struct, [instance_of: resource]}}
   end
 
-  defp ash_type(type, _resource), do: AshGleam.TypeMapper.ash_type(type)
+  defp ash_type(type, constraints, _resource), do: AshGleam.TypeMapper.ash_type(type, constraints)
+
+  defp unsupported_type_message(type, constraints, kind)
+
+  defp unsupported_type_message(type, _constraints, :return)
+       when type in [:atom, Ash.Type.Atom] do
+    "unsupported return type #{inspect(type)}; atom return types require constraints like `constraints one_of: [:x, :o, :empty]`"
+  end
+
+  defp unsupported_type_message(type, _constraints, :argument)
+       when type in [:atom, Ash.Type.Atom] do
+    "unsupported argument type #{inspect(type)}; atom argument types require constraints like `constraints one_of: [:x, :o, :empty]`"
+  end
+
+  defp unsupported_type_message(type, constraints, kind) do
+    label =
+      case kind do
+        :return -> "return type"
+        :argument -> "argument type"
+      end
+
+    "unsupported #{label} #{inspect(type)} with constraints #{inspect(constraints)}"
+  end
 
   defp define_resource_interface(dsl_state, action_name) do
     Transformer.eval(
@@ -112,12 +140,14 @@ defmodule AshGleam.Transformers.GenerateManualActions do
         arity: Keyword.fetch!(info, :arity)
       },
       return_type: action.return_type,
+      constraints: action.constraints,
       allow_nil?: action.allow_nil?,
       arguments:
         Enum.map(action.arguments, fn argument ->
           %{
             name: argument.name,
             type: argument.type,
+            constraints: argument.constraints,
             allow_nil?: argument.allow_nil?
           }
         end)

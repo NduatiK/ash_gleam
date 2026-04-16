@@ -83,5 +83,11 @@ defmodule AshGleam.TestTodo do
 
       run &:test_gleam.delete_from_elixir/1
     end
+
+    action :next_mark, :atom do
+      constraints one_of: [:x, :o, :empty]
+
+      run &:test_gleam.next_mark/0
+    end
   end
 end

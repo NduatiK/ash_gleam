@@ -71,15 +71,15 @@ defmodule AshGleam.FFITest do
   test "generated get ffi bridge supports first matching record with action-defined filter and sort",
        %{bridge: _bridge} do
     AshGleam.TestTodo
-    |> Ash.Changeset.for_create(:create, %{title: "Zulu", completed: true}    )
+    |> Ash.Changeset.for_create(:create, %{title: "Zulu", completed: true})
     |> Ash.create!()
 
     AshGleam.TestTodo
-    |> Ash.Changeset.for_create(:create, %{title: "AAA Alpha", completed: true}    )
+    |> Ash.Changeset.for_create(:create, %{title: "AAA Alpha", completed: true})
     |> Ash.create!()
 
     AshGleam.TestTodo
-    |> Ash.Changeset.for_create(:create, %{title: "Beta", completed: false}    )
+    |> Ash.Changeset.for_create(:create, %{title: "Beta", completed: false})
     |> Ash.create!()
 
     first_completed_module = AshGleam.GeneratedGleamHelper.module_atom("first_completed_todo")
@@ -92,11 +92,11 @@ defmodule AshGleam.FFITest do
 
   test "generated list ffi bridge applies filter, sort, and limit", %{bridge: _bridge} do
     AshGleam.TestTodo
-    |> Ash.Changeset.for_create(:create, %{title: "! B task", completed: false}    )
+    |> Ash.Changeset.for_create(:create, %{title: "! B task", completed: false})
     |> Ash.create!()
 
     AshGleam.TestTodo
-    |> Ash.Changeset.for_create(:create, %{title: "! A task", completed: true}    )
+    |> Ash.Changeset.for_create(:create, %{title: "! A task", completed: true})
     |> Ash.create!()
 
     list_todos_module = AshGleam.GeneratedGleamHelper.module_atom("list_todos")
@@ -118,15 +118,15 @@ defmodule AshGleam.FFITest do
 
   test "generated list ffi bridge filters by title across multiple todos", %{bridge: _bridge} do
     AshGleam.TestTodo
-    |> Ash.Changeset.for_create(:create, %{title: "Keep me", completed: false}    )
+    |> Ash.Changeset.for_create(:create, %{title: "Keep me", completed: false})
     |> Ash.create!()
 
     AshGleam.TestTodo
-    |> Ash.Changeset.for_create(:create, %{title: "Filter target", completed: true}    )
+    |> Ash.Changeset.for_create(:create, %{title: "Filter target", completed: true})
     |> Ash.create!()
 
     AshGleam.TestTodo
-    |> Ash.Changeset.for_create(:create, %{title: "Filter target", completed: false}    )
+    |> Ash.Changeset.for_create(:create, %{title: "Filter target", completed: false})
     |> Ash.create!()
 
     list_todos_module = AshGleam.GeneratedGleamHelper.module_atom("list_todos")

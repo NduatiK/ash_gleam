@@ -98,9 +98,7 @@ defmodule AshGleam.Codegen.Renderer do
     |> Enum.uniq_by(& &1.module_name)
   end
 
-  defp field_atom_type_definition(
-         %{name: field_name, type: type, constraints: constraints} 
-       )
+  defp field_atom_type_definition(%{name: field_name, type: type, constraints: constraints})
        when type in [:atom, Ash.Type.Atom, {:array, :atom}, {:array, Ash.Type.Atom}] do
     do_x = fn values ->
       type_name = Macro.camelize(to_string(field_name))
@@ -206,7 +204,7 @@ defmodule AshGleam.Codegen.Renderer do
       end)
 
     """
-    #{if(String.contains?(fields,"Option("),do: "import gleam/option.{type Option}",else: "")}
+    #{if(String.contains?(fields, "Option("), do: "import gleam/option.{type Option}", else: "")}
     #{imports}#{atom_imports}pub type #{resource.gleam_type} {
       #{resource.gleam_type}(
     #{fields}

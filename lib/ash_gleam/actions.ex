@@ -17,6 +17,7 @@ defmodule AshGleam.Actions do
               schema: [
                 Field.new(:name, :atom, required: true),
                 Field.new(:type, :any, required: true),
+                Field.new(:constraints, :keyword_list, default: []),
                 Field.new(:allow_nil?, :boolean, default: true)
               ],
               identifier: :name
@@ -29,6 +30,7 @@ defmodule AshGleam.Actions do
             schema: [
               Field.new(:name, :atom, required: true),
               Field.new(:return_type, :any, required: true),
+              Field.new(:constraints, :keyword_list, default: []),
               Field.new(:run, :any, required: true),
               Field.new(:allow_nil?, :boolean, default: false)
             ],

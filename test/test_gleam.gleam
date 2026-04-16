@@ -5,6 +5,12 @@ import test_generated/src/project_item.{type Project, Project}
 import test_generated/src/task.{Task}
 import test_generated/src/todo_item.{type Todo, Todo}
 
+pub type Mark {
+  X
+  O
+  Empty
+}
+
 pub fn mark_completed(item: Todo) -> Todo {
   Todo(..item, completed: True)
 }
@@ -35,6 +41,10 @@ pub fn first_completed_from_elixir() -> Todo {
 pub fn delete_from_elixir(todo_item: Todo) -> Result(Bool, String) {
   destroy_todo.DestroyTodo(todo_item)
   |> destroy_todo.run
+}
+
+pub fn next_mark() -> Mark {
+  Empty
 }
 
 pub fn complete_all_tasks(project: Project) -> Project {

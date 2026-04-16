@@ -28,9 +28,9 @@ defmodule Example.Games.TicTacToe do
       run &:tictactoe.mark/3
     end
 
-    action :peek, :term do
-      # TODO support atom with constraints items: [one_of: [:x, :o, :empty]]
-      # 
+    action :peek, :atom do
+      constraints one_of: [:x, :o, :empty]
+
       argument :game, __MODULE__, allow_nil?: false
       argument :x, :integer, allow_nil?: false
       argument :y, :integer, allow_nil?: false

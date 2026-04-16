@@ -148,4 +148,99 @@ defmodule AshGleam.ValidationTest do
 
     assert message =~ "arity matches the declared arguments"
   end
+
+  test "gleam action validation rejects atom returns without one_of constraints" do
+    suffix = System.unique_integer([:positive])
+    domain = Module.concat([AshGleam, Dynamic, :"AtomReturnDomain#{suffix}"])
+    resource = Module.concat([AshGleam, Dynamic, :"AtomReturnResource#{suffix}"])
+
+    quoted =
+      quote do
+        defmodule unquote(domain) do
+          use Ash.Domain, otp_app: :ash_gleam
+
+          resources do
+            resource unquote(resource)
+          end
+        end
+
+        defmodule unquote(resource) do
+          use Ash.Resource,
+            otp_app: :ash_gleam,
+            domain: unquote(domain),
+            data_layer: Ash.DataLayer.Ets,
+            extensions: [AshGleam.Actions]
+
+          ets do
+            private? true
+          end
+
+          attributes do
+            uuid_primary_key :id
+          end
+
+          gleam_actions do
+            action :broken, :atom do
+              run &:test_gleam.next_mark/0
+            end
+          end
+        end
+      end
+
+    assert_raise RuntimeError,
+                 ~r/atom return types require constraints like `constraints one_of:/,
+                 fn ->
+                   capture_io(:stderr, fn ->
+                     Code.compile_quoted(quoted)
+                   end)
+                 end
+  end
+
+  test "gleam action validation rejects atom arguments without one_of constraints" do
+    suffix = System.unique_integer([:positive])
+    domain = Module.concat([AshGleam, Dynamic, :"AtomArgumentDomain#{suffix}"])
+    resource = Module.concat([AshGleam, Dynamic, :"AtomArgumentResource#{suffix}"])
+
+    quoted =
+      quote do
+        defmodule unquote(domain) do
+          use Ash.Domain, otp_app: :ash_gleam
+
+          resources do
+            resource unquote(resource)
+          end
+        end
+
+        defmodule unquote(resource) do
+          use Ash.Resource,
+            otp_app: :ash_gleam,
+            domain: unquote(domain),
+            data_layer: Ash.DataLayer.Ets,
+            extensions: [AshGleam.Actions]
+
+          ets do
+            private? true
+          end
+
+          attributes do
+            uuid_primary_key :id
+          end
+
+          gleam_actions do
+            action :broken, :integer do
+              argument :mark, :atom, allow_nil?: false
+              run &:erlang.abs/1
+            end
+          end
+        end
+      end
+
+    assert_raise RuntimeError,
+                 ~r/atom argument types require constraints like `constraints one_of:/,
+                 fn ->
+                   capture_io(:stderr, fn ->
+                     Code.compile_quoted(quoted)
+                   end)
+                 end
+  end
 end

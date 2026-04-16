@@ -14,7 +14,11 @@ defmodule AshGleam.ManualActionRunner do
     args =
       Enum.map(config.arguments, fn argument ->
         value = Map.get(input.arguments, argument.name)
-        AshGleam.Marshal.input!(argument.type, value, allow_nil?: argument.allow_nil?)
+
+        AshGleam.Marshal.input!(argument.type, value,
+          allow_nil?: argument.allow_nil?,
+          constraints: argument.constraints
+        )
       end)
 
     result =
@@ -30,7 +34,11 @@ defmodule AshGleam.ManualActionRunner do
   end
 
   defp decode_result({:ok, value}, config) do
-    {:ok, AshGleam.Marshal.output!(config.return_type, value, allow_nil?: config.allow_nil?)}
+    {:ok,
+     AshGleam.Marshal.output!(config.return_type, value,
+       allow_nil?: config.allow_nil?,
+       constraints: config.constraints
+     )}
   end
 
   defp decode_result({:error, error}, _config) do
@@ -38,7 +46,11 @@ defmodule AshGleam.ManualActionRunner do
   end
 
   defp decode_result(value, config) do
-    {:ok, AshGleam.Marshal.output!(config.return_type, value, allow_nil?: config.allow_nil?)}
+    {:ok,
+     AshGleam.Marshal.output!(config.return_type, value,
+       allow_nil?: config.allow_nil?,
+       constraints: config.constraints
+     )}
   end
 
   defp format_error(error) when is_binary(error), do: error

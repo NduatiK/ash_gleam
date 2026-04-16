@@ -198,6 +198,12 @@ defmodule MyApp.Todo do
       argument :b, :integer, allow_nil?: false
       run &:todo_logic.safe_add/2
     end
+
+    # Returns a constrained atom enum
+    action :next_mark, :atom do
+      constraints one_of: [:x, :o, :empty]
+      run &:todo_logic.next_mark/0
+    end
   end
 end
 ```

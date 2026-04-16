@@ -67,6 +67,10 @@ defmodule AshGleam.RuntimeTest do
     assert {:ok, 3} = AshGleam.TestEmptyResource.add(%{a: 1, b: 2})
   end
 
+  test "manual gleam actions can return constrained atom enums" do
+    assert {:ok, :empty} = AshGleam.TestTodo.next_mark(%{})
+  end
+
   test "gleam action can fetch resource data from elixir and return the generated todo record" do
     AshGleam.TestTodo
     |> Ash.Changeset.for_create(:create, %{title: "Zulu", completed: true})

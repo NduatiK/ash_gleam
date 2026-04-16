@@ -4,7 +4,7 @@
 
 defmodule AshGleam.Dsl.GleamArgument do
   @moduledoc false
-  defstruct [:name, :type, :allow_nil?, :__identifier__, :__spark_metadata__]
+  defstruct [:name, :type, :constraints, :allow_nil?, :__identifier__, :__spark_metadata__]
 end
 
 defmodule AshGleam.Dsl.GleamAction do
@@ -12,6 +12,7 @@ defmodule AshGleam.Dsl.GleamAction do
   defstruct [
     :name,
     :return_type,
+    :constraints,
     :run,
     :arguments,
     :allow_nil?,
