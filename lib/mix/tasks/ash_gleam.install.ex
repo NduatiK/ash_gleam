@@ -64,7 +64,11 @@ if Code.ensure_loaded?(Igniter) do
           {:ok, {:code, [{:mix_gleam, "~> 0.6"}]}}
 
         zipper ->
-          Igniter.Code.List.append_new_to_list(zipper, {:mix_gleam, "~> 0.6"})
+          try_put(
+            zipper,
+            {:mix_gleam, "~> 0.6"},
+            "Could not add `mix_gleam: \"~> 0.6\"` to archives. Please add it manually."
+          )
       end)
     end
 
@@ -75,15 +79,29 @@ if Code.ensure_loaded?(Igniter) do
           {:ok, {:code, quote(do: [:gleam | Mix.compilers()])}}
 
         zipper ->
-          # Only prepend :gleam if it's not already present
-          case Igniter.Code.List.move_to_list_item(
-                 zipper,
-                 &Igniter.Code.Common.nodes_equal?(&1, :gleam)
-               ) do
-            {:ok, _} -> {:ok, zipper}
-            :error -> Igniter.Code.List.prepend_new_to_list(zipper, :gleam)
-          end
+          IO.inspect(zipper)
+          try_put(
+            zipper,
+            :gleam,
+            "Could not prepend `:gleam` to compilers. Please add it manually."
+          )
       end)
+    end
+
+    def try_put(zipper, value, error) do
+      case Igniter.Code.List.move_to_list_item(
+             zipper,
+             &Igniter.Code.Common.nodes_equal?(&1, value)
+           ) do
+        {:ok, _} ->
+          {:ok, zipper}
+
+        :error ->
+          case Igniter.Code.List.prepend_new_to_list(zipper, value) do
+            {:ok, zipper} -> {:ok, zipper}
+            :error -> {:warning, error}
+          end
+      end
     end
 
     # Add erlc_paths pointing to Gleam artefacts
@@ -96,11 +114,14 @@ if Code.ensure_loaded?(Igniter) do
           {:ok, {:code, [gleam_artefacts, gleam_build]}}
 
         zipper ->
-          zipper
-          |> Igniter.Code.List.append_new_to_list(gleam_artefacts)
-          |> case do
-            {:ok, zipper} -> Igniter.Code.List.append_new_to_list(zipper, gleam_build)
-            err -> err
+
+          with {:ok, zipper} <- Igniter.Code.List.append_new_to_list(zipper, gleam_artefacts),
+               {:ok, zipper} <- Igniter.Code.List.append_new_to_list(zipper, gleam_build) do
+            {:ok, zipper}
+          else
+            :error ->
+              {:warning,
+               "Could not add Gleam artefact paths to erlc_paths. Please add them manually."}
           end
       end)
     end
@@ -110,23 +131,16 @@ if Code.ensure_loaded?(Igniter) do
       include_path = "_build/dev/erlang/#{app_name}/include"
 
       MixProject.update(igniter, :project, [:erlc_include_path], fn
-        nil ->
-          {:ok, {:code, include_path}}
-
-        _zipper ->
-          # Already set — leave it alone
-          :error
+        nil -> {:ok, {:code, "\"#{include_path}\""}}
+        zipper -> {:ok, zipper}
       end)
     end
 
     # Set prune_code_paths: false (required for Elixir >= v1.15.0 with Gleam)
     defp add_prune_code_paths(igniter) do
       MixProject.update(igniter, :project, [:prune_code_paths], fn
-        nil ->
-          {:ok, {:code, false}}
-
-        _zipper ->
-          :error
+        nil -> {:ok, {:code, false}}
+        zipper -> {:ok, zipper}
       end)
     end
 
