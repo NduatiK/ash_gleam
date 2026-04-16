@@ -27,6 +27,8 @@ defmodule AshGleam.RuntimeTest do
       |> Ash.Changeset.for_create(:create, %{title: "Persist me"}, domain: AshGleam.TestDomain)
       |> Ash.create!(domain: AshGleam.TestDomain)
 
+    assert original.completed == false
+
     assert {:ok, proposed} = AshGleam.TestTodo.mark_completed(%{todo: original})
     assert proposed.completed == true
 

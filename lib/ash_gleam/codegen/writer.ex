@@ -8,15 +8,16 @@ defmodule AshGleam.Codegen.Writer do
   @spec write(map(), map(), Keyword.t()) :: :ok
   def write(manifest, rendered, opts) do
     File.mkdir_p!(AshGleam.Info.output_dir(opts))
-    File.mkdir_p!(AshGleam.Info.elixir_output_dir(opts))
+    File.mkdir_p!(AshGleam.Info.elixir_dir(opts))
+    File.mkdir_p!(AshGleam.Info.gleam_dir(opts))
     File.mkdir_p!(Path.dirname(AshGleam.Info.manifest_path(opts)))
 
     Enum.each(rendered.gleam, fn file ->
-      File.write!(Path.join(AshGleam.Info.output_dir(opts), file.path), file.contents)
+      File.write!(Path.join(AshGleam.Info.gleam_dir(opts), file.path), file.contents)
     end)
 
     Enum.each(rendered.elixir, fn file ->
-      path = Path.join(AshGleam.Info.elixir_output_dir(opts), file.path)
+      path = Path.join(AshGleam.Info.elixir_dir(opts), file.path)
       File.mkdir_p!(Path.dirname(path))
       File.write!(path, file.contents)
     end)

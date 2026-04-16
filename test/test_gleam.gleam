@@ -1,6 +1,4 @@
-pub type Todo {
-  Todo(id: String, title: String, completed: Bool)
-}
+import test_generated/src/todo_item.{type Todo, Todo}
 
 pub fn mark_completed(item: Todo) -> Todo {
   Todo(..item, completed: True)

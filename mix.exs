@@ -96,7 +96,7 @@ defmodule AshGleam.MixProject do
         CHANGELOG* documentation usage-rules.md LICENSES priv),
       links: %{
         "GitHub" => "https://github.com/NduatiK/ash_gleam",
-        "Changelog" => "https://github.com/NduatiK/ash_gleam/blob/main/CHANGELOG.md",
+        "Changelog" => "https://github.com/NduatiK/ash_gleam/blob/main/CHANGELOG.md"
       }
     ]
   end
@@ -202,7 +202,7 @@ defmodule AshGleam.MixProject do
       {:mix_audit, ">= 0.0.0", only: [:dev, :test], runtime: false},
       {:usage_rules, "~> 0.1", only: [:dev]},
       {:tidewave, "~> 0.5", only: [:dev, :test]},
-      {:ex_check, "~> 0.12", only: [:dev, :test]},
+      {:ex_check, "~> 0.12", only: [:dev, :test]}
     ]
   end
 

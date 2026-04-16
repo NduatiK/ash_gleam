@@ -25,7 +25,8 @@ ash_gleam-*.tar
 
 # Temporary files, for example, from tests.
 /tmp/
-.ash_gleam/
+generated/
+src/test_generated/
 build/
 
 # Per-worktree mise local override

@@ -48,7 +48,6 @@ defmodule AshGleam.Transformers.ValidateGleamActions do
     if arity == length(action.arguments) and Keyword.get(info, :type) == :external do
       :ok
     else
-
       {:error,
        Spark.Error.DslError.exception(
          module: Keyword.get(info, :module),

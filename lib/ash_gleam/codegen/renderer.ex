@@ -9,7 +9,9 @@ defmodule AshGleam.Codegen.Renderer do
           gleam: [%{path: String.t(), contents: String.t()}],
           elixir: [%{path: String.t(), contents: String.t()}]
         }
-  def render(manifest, _opts \\ []) do
+  def render(manifest, opts \\ []) do
+    prefix = AshGleam.Info.gleam_module_prefix(opts)
+
     gleam =
       Enum.flat_map(manifest.resources, fn {_name, resource} ->
         [%{path: "#{resource.module_name}.gleam", contents: render_resource(resource)}]
@@ -19,7 +21,7 @@ defmodule AshGleam.Codegen.Renderer do
             domain.ffi,
             &%{
               path: "#{Atom.to_string(&1.ffi_name)}.gleam",
-              contents: render_ffi(domain.module, manifest.resources[&1.resource], &1)
+              contents: render_ffi(domain.module, manifest.resources[&1.resource], &1, prefix)
             }
           )
         end)
@@ -123,10 +125,11 @@ defmodule AshGleam.Codegen.Renderer do
     """
   end
 
-  defp render_ffi(domain_module, resource, ffi) do
+  defp render_ffi(domain_module, resource, ffi, prefix) do
     action_module = Macro.camelize(Atom.to_string(ffi.ffi_name))
     resource_type = resource.gleam_type
     resource_module = resource.module_name
+    resource_import = "#{prefix}/#{resource_module}"
 
     case ffi.kind do
       :create ->
@@ -149,7 +152,7 @@ defmodule AshGleam.Codegen.Renderer do
           Enum.map_join(create_fields, ", ", fn field -> field.name end)
 
         """
-        import #{resource_module}.{type #{resource_type}}
+        import #{resource_import}.{type #{resource_type}}
 
         pub type #{action_module} {
           #{action_module}(
@@ -169,7 +172,7 @@ defmodule AshGleam.Codegen.Renderer do
         pk = hd(resource.fields)
 
         """
-        import #{resource_module}.{type #{resource_type}}
+        import #{resource_import}.{type #{resource_type}}
 
         pub type #{action_module} {
           #{action_module}(id: #{gleam_type!(pk.type, false)}, fields: List(String))
@@ -191,7 +194,7 @@ defmodule AshGleam.Codegen.Renderer do
       _ ->
         """
         import gleam/option.{None, type Option}
-        import #{resource_module}.{type #{resource_type}, type #{resource_type}Filter, type #{resource_type}Sort}
+        import #{resource_import}.{type #{resource_type}, type #{resource_type}Filter, type #{resource_type}Sort}
 
         pub type #{action_module} {
           #{action_module}(

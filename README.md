@@ -10,7 +10,6 @@ SPDX-License-Identifier: MIT
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Hex version badge](https://img.shields.io/hexpm/v/ash_gleam.svg)](https://hex.pm/packages/ash_gleam)
 [![Hexdocs badge](https://img.shields.io/badge/docs-hexdocs-purple)](https://hexdocs.pm/ash_gleam)
-[![REUSE status](https://api.reuse.software/badge/github.com/NduatiK/ash_gleam)](https://api.reuse.software/info/github.com/NduatiK/ash_gleam)
 
 # AshGleam
 
@@ -20,13 +19,14 @@ Generate type-safe Gleam clients directly from your Elixir Ash resources, ensuri
 
 ## TODO
 
-- Fix readme
+- Stop returning specific fields, return all public fields in the order they appear in attributes
 - Test calling gleam code that calls ash code
 - Ensure ash code called from gleam returns Results
 - Experiment with embedded resources (the most likely usecase)
 - Support destroy actions
 - Handle nested types eg when nesting embedded resources
-- 
+- Fix readme
+
 
 ## Features
 
@@ -53,13 +53,6 @@ defmodule MyApp.Todo do
     type_name "Todo"
   end
   
-  gleam_actions do
-    action :mark_completed, __MODULE__ do
-      argument :todo, __MODULE__, allow_nil?: false
-  
-      run &:todo.mark_completed/1
-    end
-  end
 
   attributes do
     uuid_primary_key :id
@@ -111,6 +104,66 @@ let new_todo = CreateTodo.new(
   priority: "high"
 )
 |> CreateTodo.run()
+```
+
+### 1. Add Resource Extension
+
+```gleam
+// todo_items.gleam
+import ...
+
+pub fn mark_completed(item: Todo) -> Todo {
+  Todo(..item, completed: True)
+}
+
+pub fn add(a: Int, b: Int) -> Int {
+  a + b
+}
+```
+
+```elixir
+defmodule MyApp.Todo do
+  use Ash.Resource,
+    domain: MyApp.Domain,
+    extensions: [AshGleam.Resource]
+
+  gleam do
+    # ...
+    actions do
+      action :mark_completed, __MODULE__ do
+        argument :todo_item, __MODULE__, allow_nil?: false
+    
+        run &:todo_items.mark_completed/1
+      end
+    end
+  end
+end
+```
+
+#### Do not need attributes
+
+```gleam
+// gleam_math.gleam
+pub fn add(a: Int, b: Int) -> Int {
+  a + b
+}
+```
+
+```elixir
+defmodule MyApp.Math do
+  use Ash.Resource,
+    domain: MyApp.Domain,
+    extensions: [AshGleam.Actions]
+
+  gleam_actions do
+    action :add, :integer do
+      argument :a, :integer, allow_nil?: false
+      argument :b, :integer, allow_nil?: false
+
+      run &:gleam_math.add/2
+    end
+  end
+end
 ```
 
 **That's it!** Your Gleam frontend now has compile-time type safety for your Elixir backend.
