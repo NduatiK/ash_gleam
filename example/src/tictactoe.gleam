@@ -1,9 +1,8 @@
 import generated/src/board
 import generated/src/current_player
 import generated/src/tic_tac_toe.{type TicTacToe, TicTacToe}
-import gleam/dict.{type Dict}
+import generated/src/winner
 import gleam/list
-import gleam/option.{type Option, None, Some}
 import gleam/result.{try_recover as else_try}
 
 type Grid =
@@ -37,24 +36,31 @@ pub fn mark(game: TicTacToe, x: Int, y: Int) -> Result(TicTacToe, Error) {
   }
 }
 
-pub fn win(game: TicTacToe) -> Result(board.Board, Nil) {
+pub fn win(game: TicTacToe) -> Result(winner.Winner, Nil) {
   // Check all rows
-  use _ <- else_try(check(game.board, [#(1, 1), #(1, 2), #(1, 3)]))
-  use _ <- else_try(check(game.board, [#(2, 1), #(2, 2), #(2, 3)]))
-  use _ <- else_try(check(game.board, [#(3, 1), #(3, 2), #(3, 3)]))
+  use _ <- else_try(check(game.board, [#(0, 0), #(0, 1), #(0, 2)]))
+  use _ <- else_try(check(game.board, [#(1, 0), #(1, 1), #(1, 2)]))
+  use _ <- else_try(check(game.board, [#(2, 0), #(2, 1), #(2, 2)]))
 
   // Check all columns
-  use _ <- else_try(check(game.board, [#(1, 1), #(2, 1), #(3, 1)]))
-  use _ <- else_try(check(game.board, [#(1, 2), #(2, 2), #(3, 2)]))
-  use _ <- else_try(check(game.board, [#(1, 3), #(2, 3), #(3, 3)]))
+  use _ <- else_try(check(game.board, [#(0, 0), #(1, 0), #(2, 0)]))
+  use _ <- else_try(check(game.board, [#(0, 1), #(1, 1), #(2, 1)]))
+  use _ <- else_try(check(game.board, [#(0, 2), #(1, 2), #(2, 2)]))
 
   // Check \ diagonal
-  use _ <- else_try(check(game.board, [#(1, 1), #(2, 2), #(3, 3)]))
+  use _ <- else_try(check(game.board, [#(0, 0), #(1, 1), #(2, 2)]))
 
   // Check / diagonal
-  use _ <- else_try(check(game.board, [#(1, 3), #(2, 2), #(3, 1)]))
+  use _ <- else_try(check(game.board, [#(0, 2), #(1, 1), #(2, 0)]))
 
-  Error(Nil)
+  case is_filled(game) {
+    True -> Ok(winner.Draw)
+    False -> Error(Nil)
+  }
+}
+
+fn is_filled(game: TicTacToe) -> Bool {
+  !list.any(game.board, fn(v) { v == board.Empty })
 }
 
 fn next_turn(mark: current_player.CurrentPlayer) -> current_player.CurrentPlayer {
@@ -71,7 +77,12 @@ fn check(grid: Grid, coordinates: List(#(Int, Int))) -> Result(_, Nil) {
     |> result.values
 
   case marks {
-    [x, y, z] if x == y && y == z -> Ok(x)
+    [x, y, z] if x == y && y == z && x != board.Empty -> {
+      Ok(case x {
+        board.O -> winner.O
+        _ -> winner.X
+      })
+    }
     _other -> Error(Nil)
   }
 }
@@ -90,13 +101,12 @@ pub fn peek(game: TicTacToe, x: Int, y: Int) {
 }
 
 fn get(grid: Grid, position: #(Int, Int)) {
-  let index = {
-    position.0 + position.1 * 3
-  }
+  let index = position.0 + position.1 * 3
+
   case { index >= 0 && index < 9 } {
     False -> Error(Nil)
     True -> {
-      case list.drop(grid, index - 1) {
+      case list.drop(grid, index) {
         [value, ..] -> Ok(value)
         _ -> Error(Nil)
       }
@@ -109,8 +119,9 @@ fn put(grid: Grid, x: Int, y: Int, value: board.Board) {
     x + y * 3
   }
 
-  case list.split(grid, index - 1) {
+  case list.split(grid, index) |> echo {
     #(before, [board.Empty, ..rest]) -> list.append(before, [value, ..rest])
     _ -> grid
   }
+  |> echo
 }

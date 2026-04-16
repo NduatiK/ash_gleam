@@ -5,7 +5,7 @@
 defmodule AshGleam.TypeMapper do
   @moduledoc false
 
-  @scalar_types [:string, :integer, :boolean, :float, :decimal, :uuid]
+  @scalar_types [:string, :integer, :boolean, :float, :decimal, :uuid, :term]
   @type_constraints [:one_of, :items]
   @scalar_type_modules %{
     Ash.Type.String => :string,
@@ -13,7 +13,8 @@ defmodule AshGleam.TypeMapper do
     Ash.Type.Boolean => :boolean,
     Ash.Type.Float => :float,
     Ash.Type.Decimal => :decimal,
-    Ash.Type.UUID => :uuid
+    Ash.Type.UUID => :uuid,
+    Ash.Type.Term => :term
   }
 
   @spec supported?(term(), Keyword.t()) :: boolean()
@@ -133,6 +134,9 @@ defmodule AshGleam.TypeMapper do
         {:ok, "Float"}
 
       {:ok, {:scalar, :uuid}} ->
+        {:ok, "String"}
+      
+      {:ok, {:scalar, :term}} ->
         {:ok, "String"}
 
       {:ok, {:atom_enum, values}} ->

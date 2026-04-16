@@ -25,6 +25,7 @@ defmodule AshGleam.Marshal do
 
   @spec output!(term(), term(), Keyword.t()) :: term()
   def output!(type, value, opts \\ []) do
+    # IO.inspect({type, value})
     cond do
       value == :none and Keyword.get(opts, :allow_nil?, false) ->
         nil
@@ -38,6 +39,7 @@ defmodule AshGleam.Marshal do
     end
   rescue
     error ->
+      # IO.inspect(error)
       raise ActionInterop,
         message: "Failed to marshal output",
         details: %{phase: :marshal_output, type: type, error: Exception.message(error)}
@@ -55,7 +57,6 @@ defmodule AshGleam.Marshal do
       resource
       |> AshGleam.Resource.Info.fields()
       |> Enum.map(fn field ->
-        # IO.inspect({"field", field})
         field_value = Map.get(value, field.name)
 
         input!(field.type, field_value,
@@ -112,7 +113,6 @@ defmodule AshGleam.Marshal do
   defp marshal(type, value, opts, :to_gleam) when is_atom(type) do
     constraints = Keyword.get(opts, :constraints, [])
 
-    # IO.inspect({"106", type, value, opts})
 
     case AshGleam.TypeMapper.normalize(type, constraints) do
       {:ok, {:scalar, _}} -> value

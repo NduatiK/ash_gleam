@@ -11,8 +11,8 @@ defmodule Example.Games do
   end
 
   resources do
-    resource Example.Games.TicTacToe  do
+    resource Example.Games.TicTacToe do
       define :new_tictactoe, action: :create
+    end
   end
-end
 end

@@ -11,13 +11,13 @@ defmodule ExampleWeb.Example.GameLive do
     </div>
     <div class="center">
       <div class="grid">
-        <%= for {x, y, mark, class} <- @render_grid do %>
+        <%= for {x, y, mark} <- @grid do %>
           <%= if @ended? do %>
-            <div phx-value-x={x} phx-value-y={y} class={class}>
+            <div phx-value-x={x} phx-value-y={y} class={"mark-#{mark}"}>
               {mark}
             </div>
           <% else %>
-            <div phx-click="mark" phx-value-x={x} phx-value-y={y} class={class}>
+            <div phx-click="mark" phx-value-x={x} phx-value-y={y} class={"mark-#{mark}"}>
               {mark}
             </div>
           <% end %>
@@ -34,23 +34,23 @@ defmodule ExampleWeb.Example.GameLive do
     {:ok,
      socket
      |> assign(:game, game)
+     |> assign(:grid, render_grid(game))
      |> assign(:ended?, ended?(game))
-     |> assign(:render_win, render_win(game))
-     |> assign(:render_grid, render_grid(game))}
+     |> assign(:render_win, render_win(game))}
   end
 
   def handle_event("mark", %{"x" => x, "y" => y}, socket) do
     {x, ""} = Integer.parse(x)
     {y, ""} = Integer.parse(y)
 
-    case TicTacToe.mark(%{game: socket.assigns.game, x: x, y: y})|>IO.inspect() do
+    case TicTacToe.mark(%{game: socket.assigns.game, x: x, y: y}) do
       {:ok, game} ->
         {:noreply,
          socket
          |> assign(:game, game)
+         |> assign(:grid, render_grid(game))
          |> assign(:ended?, ended?(game))
-         |> assign(:render_win, render_win(game))
-         |> assign(:render_grid, render_grid(game))}
+         |> assign(:render_win, render_win(game))}
 
       {:error, _error} ->
         {:noreply, socket}
@@ -68,17 +68,16 @@ defmodule ExampleWeb.Example.GameLive do
     case TicTacToe.win(%{game: game}) do
       {:ok, :x} -> "Game! X 🎉"
       {:ok, :o} -> "Game! O 🎉"
+      {:ok, :draw} -> "Draw"
       {:error, _} -> nil
     end
   end
 
   defp render_grid(%TicTacToe{} = game) do
-    for x <- [0, 1, 2],
-        y <- [0, 1, 2] do
+    for y <- [0, 1, 2], x <- [0, 1, 2] do
       case TicTacToe.peek(%{game: game, x: x, y: y}) do
-         :x -> {x, y, "X", "mark-x"}
-         :o -> {x, y, "O", "mark-o"}
-        :empty -> {x, y, nil, nil}
+        {:ok, :empty} -> {x, y, nil}
+        {:ok, mark} -> {x, y, mark}
       end
     end
   end

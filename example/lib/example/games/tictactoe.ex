@@ -14,7 +14,7 @@ defmodule Example.Games.TicTacToe do
   end
 
   gleam_actions do
-    action :win, __MODULE__ do
+    action :win, :term do
       argument :game, __MODULE__, allow_nil?: false
 
       run &:tictactoe.win/1
@@ -27,8 +27,8 @@ defmodule Example.Games.TicTacToe do
 
       run &:tictactoe.mark/3
     end
-    
-    action :peek, :integer do
+
+    action :peek, :term do
       # TODO support atom with constraints items: [one_of: [:x, :o, :empty]]
       # 
       argument :game, __MODULE__, allow_nil?: false
