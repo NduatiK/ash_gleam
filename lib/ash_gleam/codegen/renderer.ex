@@ -196,6 +196,22 @@ defmodule AshGleam.Codegen.Renderer do
         pub fn run(builder: #{action_module}) -> Result(#{resource_type}, String)
         """
 
+      :destroy ->
+        """
+        import #{resource_import}.{type #{resource_type}}
+
+        pub type #{action_module} {
+          #{action_module}(record: #{resource_type})
+        }
+
+        pub fn new(record: #{resource_type}) -> #{action_module} {
+          #{action_module}(record)
+        }
+
+        @external(erlang, "Elixir.#{inspect(domain_module)}.Generated", "#{ffi.ffi_name}")
+        pub fn run(builder: #{action_module}) -> Result(Bool, String)
+        """
+
       _ ->
         """
         import gleam/option.{None, type Option}
@@ -286,6 +302,25 @@ defmodule AshGleam.Codegen.Renderer do
             |> Query.for_read(#{inspect(ffi.action)}, params, domain: #{inspect(domain_module)})
             |> Ash.read_one(domain: #{inspect(domain_module)})
             |> AshGleam.Generated.Bridge.encode_result(&AshGleam.Marshal.to_gleam(#{inspect(resource.module)}, &1))
+          end
+        """
+
+      :destroy ->
+        """
+          def #{ffi.ffi_name}(builder) do
+            %{record: record} =
+              AshGleam.Generated.Bridge.decode_action(
+                builder,
+                [%{name: :record, type: #{inspect(resource.module)}, allow_nil?: false}]
+              )
+
+            record
+            |> Ash.Changeset.for_destroy(#{inspect(ffi.action)}, %{}, domain: #{inspect(domain_module)})
+            |> Ash.destroy(domain: #{inspect(domain_module)})
+            |> AshGleam.Generated.Bridge.encode_result(fn
+              :ok -> true
+              _ -> true
+            end)
           end
         """
 

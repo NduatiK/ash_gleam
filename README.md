@@ -21,9 +21,7 @@ Generate type-safe Gleam clients directly from your Elixir Ash resources, ensuri
 
 - List out the supported types in the docs
 - Support the map type as a record. https://hexdocs.pm/ash/Ash.Type.Map.html
-- Stop returning specific fields, return all public fields in the order they appear in attributes
 - Experiment with embedded resources (the most likely usecase)
-- Support destroy actions
 - Handle nested types eg when nesting embedded resources
 - Fix readme
 

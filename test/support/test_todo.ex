@@ -34,6 +34,8 @@ defmodule AshGleam.TestTodo do
       require_atomic? false
     end
 
+    destroy :destroy
+
     read :get do
       get_by [:id]
     end
@@ -74,6 +76,12 @@ defmodule AshGleam.TestTodo do
 
     action :first_completed_from_elixir, __MODULE__ do
       run &:test_gleam.first_completed_from_elixir/0
+    end
+
+    action :delete_from_elixir, :boolean do
+      argument :todo, __MODULE__, allow_nil?: false
+
+      run &:test_gleam.delete_from_elixir/1
     end
   end
 end

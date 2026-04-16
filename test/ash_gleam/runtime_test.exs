@@ -75,6 +75,20 @@ defmodule AshGleam.RuntimeTest do
     assert %AshGleam.TestTodo{title: "AAA Alpha", completed: true} = fetched
   end
 
+  test "gleam action can delete a resource through elixir" do
+    todo =
+      AshGleam.TestTodo
+      |> Ash.Changeset.for_create(:create, %{title: "Delete me"})
+      |> Ash.create!()
+
+    assert {:ok, true} = AshGleam.TestTodo.delete_from_elixir(%{todo: todo})
+
+    assert {:ok, nil} =
+             AshGleam.TestTodo
+             |> Ash.Query.for_read(:get, %{id: todo.id})
+             |> Ash.read_one()
+  end
+
   test "resource-returning gleam actions stay pure until diffed and persisted through Ash" do
     original =
       AshGleam.TestTodo

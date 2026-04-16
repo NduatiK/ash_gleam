@@ -1,3 +1,4 @@
+import test_generated/src/destroy_todo
 import test_generated/src/first_completed_todo
 import test_generated/src/todo_item.{type Todo, Todo}
 
@@ -26,4 +27,9 @@ pub fn first_completed_from_elixir() -> Todo {
     |> first_completed_todo.run()
 
   todo_item
+}
+
+pub fn delete_from_elixir(todo_item: Todo) -> Result(Bool, String) {
+  destroy_todo.DestroyTodo(todo_item)
+  |> destroy_todo.run
 }

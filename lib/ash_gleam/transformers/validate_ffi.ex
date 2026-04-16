@@ -63,7 +63,7 @@ defmodule AshGleam.Transformers.ValidateFFI do
             )}}
 
         action = Ash.Resource.Info.action(resource_entry.resource, action_entry.action) ->
-          if action.type in [:read, :create] or action.name == :get do
+          if action.type in [:read, :create, :destroy] or action.name == :get do
             {:cont, :ok}
           else
             {:halt,
@@ -71,7 +71,7 @@ defmodule AshGleam.Transformers.ValidateFFI do
               Spark.Error.DslError.exception(
                 module: resource_entry.resource,
                 message:
-                  "FFI action #{inspect(action_entry.action)} must be a :read, :create, or :get action"
+                  "FFI action #{inspect(action_entry.action)} must be a :read, :create, :destroy, or :get action"
               )}}
           end
 

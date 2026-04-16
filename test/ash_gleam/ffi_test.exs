@@ -167,4 +167,24 @@ defmodule AshGleam.FFITest do
              true
            ]
   end
+
+  test "generated destroy ffi bridge takes a resource and deletes it", %{bridge: _bridge} do
+    todo =
+      AshGleam.TestTodo
+      |> Ash.Changeset.for_create(:create, %{title: "Destroy me"})
+      |> Ash.create!()
+
+    destroy_todo_module = AshGleam.GeneratedGleamHelper.module_atom("destroy_todo")
+    builder =
+      destroy_todo_module.new(
+        AshGleam.Marshal.to_gleam(AshGleam.TestTodo, todo)
+      )
+
+    assert {:ok, true} = destroy_todo_module.run(builder)
+
+    assert {:ok, nil} =
+             AshGleam.TestTodo
+             |> Ash.Query.for_read(:get, %{id: todo.id})
+             |> Ash.read_one()
+  end
 end
