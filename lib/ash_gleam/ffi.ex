@@ -17,8 +17,7 @@ defmodule AshGleam.FFI do
                 schema: [
                   Field.new(:ffi_name, :atom, required: true),
                   Field.new(:action, :atom, required: true)
-                ],
-                identifier: :ffi_name
+                ]
               )
               |> Entity.build!()
 
