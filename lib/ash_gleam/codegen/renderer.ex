@@ -43,22 +43,6 @@ defmodule AshGleam.Codegen.Renderer do
         "    #{field.name}: #{gleam_type!(field.type, field.allow_nil?)}"
       end)
 
-    field_helpers =
-      Enum.map_join(resource.fields, "\n\n", fn field ->
-        field_name = to_string(field.name)
-
-        """
-        pub fn #{field_name}_field() -> String {
-          "#{field_name}"
-        }
-        """
-      end)
-
-    field_variants =
-      Enum.map_join(resource.fields, "\n", fn field ->
-        "  #{Macro.camelize(to_string(field.name))}"
-      end)
-
     sort_helpers =
       Enum.map_join(resource.fields, "\n\n", fn field ->
         base = Macro.camelize(to_string(field.name))
@@ -103,12 +87,6 @@ defmodule AshGleam.Codegen.Renderer do
       #{resource.gleam_type}(
     #{fields}
       )
-    }
-
-    #{field_helpers}
-
-    pub type #{resource.gleam_type}Field {
-    #{field_variants}
     }
 
     pub type #{resource.gleam_type}Sort {
@@ -175,16 +153,11 @@ defmodule AshGleam.Codegen.Renderer do
         import #{resource_import}.{type #{resource_type}}
 
         pub type #{action_module} {
-          #{action_module}(id: #{gleam_type!(pk.type, false)}, fields: List(String))
+          #{action_module}(id: #{gleam_type!(pk.type, false)})
         }
 
         pub fn new(id: #{gleam_type!(pk.type, false)}) -> #{action_module} {
-          #{action_module}(id, [])
-        }
-
-        pub fn fields(builder: #{action_module}, fields: List(String)) -> #{action_module} {
-          let #{action_module}(id, _) = builder
-          #{action_module}(id, fields)
+          #{action_module}(id)
         }
 
         @external(erlang, "Elixir.#{inspect(domain_module)}.Generated", "#{ffi.ffi_name}")
@@ -198,7 +171,6 @@ defmodule AshGleam.Codegen.Renderer do
 
         pub type #{action_module} {
           #{action_module}(
-            fields: List(String),
             filter: List(#{resource_type}Filter),
             sort: List(#{resource_type}Sort),
             limit: Option(Int),
@@ -206,27 +178,22 @@ defmodule AshGleam.Codegen.Renderer do
         }
 
         pub fn new() -> #{action_module} {
-          #{action_module}([], [], [], None)
-        }
-
-        pub fn fields(builder: #{action_module}, fields: List(String)) -> #{action_module} {
-          let #{action_module}(_, filter, sort, limit) = builder
-          #{action_module}(fields, filter, sort, limit)
+          #{action_module}([], [], None)
         }
 
         pub fn filter(builder: #{action_module}, filters: List(#{resource_type}Filter)) -> #{action_module} {
-          let #{action_module}(fields, _, sort, limit) = builder
-          #{action_module}(fields, filters, sort, limit)
+          let #{action_module}(_, sort, limit) = builder
+          #{action_module}(filters, sort, limit)
         }
 
         pub fn sort(builder: #{action_module}, sorts: List(#{resource_type}Sort)) -> #{action_module} {
-          let #{action_module}(fields, filter, _, limit) = builder
-          #{action_module}(fields, filter, sorts, limit)
+          let #{action_module}(filter, _, limit) = builder
+          #{action_module}(filter, sorts, limit)
         }
 
         pub fn limit(builder: #{action_module}, limit: Option(Int)) -> #{action_module} {
-          let #{action_module}(fields, filter, sort, _) = builder
-          #{action_module}(fields, filter, sort, limit)
+          let #{action_module}(filter, sort, _) = builder
+          #{action_module}(filter, sort, limit)
         }
 
         @external(erlang, "Elixir.#{inspect(domain_module)}.Generated", "#{ffi.ffi_name}")
@@ -281,17 +248,10 @@ defmodule AshGleam.Codegen.Renderer do
       :get ->
         """
           def #{ffi.ffi_name}(builder) do
-            {id, fields} = AshGleam.Generated.Bridge.decode_get(builder)
+            id = AshGleam.Generated.Bridge.decode_get(builder)
 
             #{inspect(resource.module)}
             |> Query.for_read(#{inspect(ffi.action)}, %{id: id}, domain: #{inspect(domain_module)})
-            |> then(fn query ->
-              if fields == [] do
-                query
-              else
-                Ash.Query.select(query, Enum.map(fields, &String.to_existing_atom/1))
-              end
-            end)
             |> Ash.read_one(domain: #{inspect(domain_module)})
             |> AshGleam.Generated.Bridge.encode_result(&AshGleam.Marshal.to_gleam(#{inspect(resource.module)}, &1))
           end

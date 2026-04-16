@@ -14,7 +14,7 @@ defmodule AshGleam.FFITest do
   test "generated create ffi bridge creates a resource", %{bridge: _bridge} do
     create_todo_module = AshGleam.GeneratedGleamHelper.module_atom("create_todo")
 
-    builder =      create_todo_module.new(        "Created from ffi",        false      )
+    builder = create_todo_module.new("Created from ffi", false)
 
     assert {:ok, {:todo, id, "Created from ffi", false}} =
              create_todo_module.run(builder)
@@ -34,15 +34,7 @@ defmodule AshGleam.FFITest do
       |> Ash.create!(domain: AshGleam.TestDomain)
 
     get_todo_module = AshGleam.GeneratedGleamHelper.module_atom("get_todo")
-    todo_item_module = AshGleam.GeneratedGleamHelper.module_atom("todo_item")
-
-    builder =
-      todo.id
-      |> get_todo_module.new()
-      |> get_todo_module.fields([
-        todo_item_module.title_field(),
-        todo_item_module.completed_field()
-      ])
+    builder = get_todo_module.new(todo.id)
 
     assert {:ok, {:todo, id, "Fetch me", false}} =
              get_todo_module.run(builder)
@@ -50,7 +42,7 @@ defmodule AshGleam.FFITest do
     assert id == todo.id
   end
 
-  test "generated list ffi bridge applies fields, filter, sort, and limit", %{bridge: _bridge} do
+  test "generated list ffi bridge applies filter, sort, and limit", %{bridge: _bridge} do
     AshGleam.TestTodo
     |> Ash.Changeset.for_create(:create, %{title: "B task", completed: false},
       domain: AshGleam.TestDomain
@@ -68,10 +60,6 @@ defmodule AshGleam.FFITest do
 
     builder =
       list_todos_module.new()
-      |> list_todos_module.fields([
-        todo_item_module.title_field(),
-        todo_item_module.completed_field()
-      ])
       |> list_todos_module.filter([
         todo_item_module.completed_eq(true)
       ])
@@ -108,14 +96,8 @@ defmodule AshGleam.FFITest do
 
     builder =
       list_todos_module.new()
-      |> list_todos_module.fields([
-        todo_item_module.title_field(),
-        todo_item_module.completed_field()
-      ])
       |> list_todos_module.filter([
-        todo_item_module.title_eq(
-          "Filter target"
-        )
+        todo_item_module.title_eq("Filter target")
       ])
       |> list_todos_module.sort([
         todo_item_module.title_asc()

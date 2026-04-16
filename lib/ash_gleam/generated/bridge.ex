@@ -25,24 +25,18 @@ defmodule AshGleam.Generated.Bridge do
   end
 
   def decode_get(builder) do
-    {_constructor, id, fields} = builder
-    {id, fields}
+    {_constructor, id} = builder
+    id
   end
 
   def apply_read_builder(query, resource, builder) do
-    {_constructor, fields, filters, sorts, limit} = builder
+    {_constructor, filters, sorts, limit} = builder
 
     query
-    |> maybe_select(fields)
     |> maybe_filter(resource, filters)
     |> maybe_sort(resource, sorts)
     |> maybe_limit(limit)
   end
-
-  defp maybe_select(query, []), do: query
-
-  defp maybe_select(query, fields),
-    do: Ash.Query.select(query, Enum.map(fields, &to_existing_atom/1))
 
   defp maybe_filter(query, _resource, []), do: query
 
