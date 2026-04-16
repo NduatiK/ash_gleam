@@ -53,10 +53,23 @@ defmodule AshGleam.TestTodo do
       run &:test_gleam.add/2
     end
 
+    action :safe_add, :integer do
+      argument :a, :integer, allow_nil?: false
+      argument :b, :integer, allow_nil?: false
+
+      run &:test_gleam.safe_add/2
+    end
+
     action :mark_completed, __MODULE__ do
       argument :todo, __MODULE__, allow_nil?: false
 
       run &:test_gleam.mark_completed/1
+    end
+
+    action :safe_mark_completed, __MODULE__ do
+      argument :todo, __MODULE__, allow_nil?: false
+
+      run &:test_gleam.safe_mark_completed/1
     end
 
     action :first_completed_from_elixir, __MODULE__ do

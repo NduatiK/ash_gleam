@@ -21,6 +21,14 @@ defmodule AshGleam.RuntimeTest do
     assert {:ok, 5} = AshGleam.TestTodo.add(%{a: 2, b: 3})
   end
 
+  test "gleam actions support ok and error result types for scalars" do
+    assert {:ok, 5} = AshGleam.TestTodo.safe_add(%{a: 2, b: 3})
+
+    assert {:error, error} = AshGleam.TestTodo.safe_add(%{a: -1, b: 3})
+    assert %Ash.Error.Unknown{errors: [%Ash.Error.Unknown.UnknownError{error: "negative inputs are not allowed"}]} =
+             error
+  end
+
   test "manual resource gleam action marshals resource values in and out" do
     todo =
       AshGleam.TestTodo
@@ -28,6 +36,17 @@ defmodule AshGleam.RuntimeTest do
       |> Ash.create!(domain: AshGleam.TestDomain)
 
     assert {:ok, updated} = AshGleam.TestTodo.mark_completed(%{todo: todo})
+    assert %AshGleam.TestTodo{id: id, title: "Ship tests", completed: true} = updated
+    assert id == todo.id
+  end
+
+  test "gleam actions support ok result types for resources" do
+    todo =
+      AshGleam.TestTodo
+      |> Ash.Changeset.for_create(:create, %{title: "Ship tests"}, domain: AshGleam.TestDomain)
+      |> Ash.create!(domain: AshGleam.TestDomain)
+
+    assert {:ok, updated} = AshGleam.TestTodo.safe_mark_completed(%{todo: todo})
     assert %AshGleam.TestTodo{id: id, title: "Ship tests", completed: true} = updated
     assert id == todo.id
   end
