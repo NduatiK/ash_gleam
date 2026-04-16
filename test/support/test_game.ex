@@ -68,18 +68,4 @@ defmodule AshGleam.TestGame do
       get_by [:id]
     end
   end
-
-  gleam_actions do
-    action :switch_player, __MODULE__ do
-      argument :game, __MODULE__, allow_nil?: false
-
-      run &:test_gleam.switch_player/1
-    end
-
-    action :finish_as_draw, __MODULE__ do
-      argument :game, __MODULE__, allow_nil?: false
-
-      run &:test_gleam.finish_as_draw/1
-    end
-  end
 end
