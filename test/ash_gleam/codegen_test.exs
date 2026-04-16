@@ -12,7 +12,8 @@ defmodule AshGleam.CodegenTest do
     assert [
              %{ffi_name: :list_todos, kind: :read},
              %{ffi_name: :create_todo, kind: :create},
-             %{ffi_name: :get_todo, kind: :get}
+             %{ffi_name: :get_todo, kind: :get},
+             %{ffi_name: :first_completed_todo, kind: :get}
            ] = manifest.domains[domain_key].ffi
 
     assert Enum.any?(manifest.gleam_actions, &(&1.action_name == :add))
@@ -34,6 +35,7 @@ defmodule AshGleam.CodegenTest do
     assert File.exists?(Path.join(gleam_src, "list_todos.gleam"))
     assert File.exists?(Path.join(gleam_src, "create_todo.gleam"))
     assert File.exists?(Path.join(gleam_src, "get_todo.gleam"))
+    assert File.exists?(Path.join(gleam_src, "first_completed_todo.gleam"))
     assert File.read!(Path.join(gleam_src, "todo_item.gleam")) =~ "pub type Todo"
 
     assert File.read!(Path.join(gleam_src, "list_todos.gleam")) =~
@@ -61,6 +63,7 @@ defmodule AshGleam.CodegenTest do
     assert File.exists?("#{AshGleam.Info.gleam_dir()}/list_todos.gleam")
     assert File.exists?("#{AshGleam.Info.gleam_dir()}/create_todo.gleam")
     assert File.exists?("#{AshGleam.Info.gleam_dir()}/get_todo.gleam")
+    assert File.exists?("#{AshGleam.Info.gleam_dir()}/first_completed_todo.gleam")
     assert File.exists?("#{AshGleam.Info.elixir_dir()}/ash_gleam/test_domain/generated.ex")
 
     assert File.read!("#{AshGleam.Info.gleam_dir()}/list_todos.gleam") =~

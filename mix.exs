@@ -34,7 +34,8 @@ defmodule AshGleam.MixProject do
       dialyzer: [
         plt_add_apps: [:mix]
       ],
-      consolidate_protocols: Mix.env() != :test
+      consolidate_protocols: Mix.env() != :test,
+      usage_rules: usage_rules()
     ]
   end
 
@@ -200,7 +201,7 @@ defmodule AshGleam.MixProject do
       {:sobelow, ">= 0.0.0", only: [:dev, :test], runtime: false},
       {:picosat_elixir, "~> 0.2", only: [:dev, :test]},
       {:mix_audit, ">= 0.0.0", only: [:dev, :test], runtime: false},
-      {:usage_rules, "~> 0.1", only: [:dev]},
+      {:usage_rules, "~> 1.0", only: [:dev]},
       {:tidewave, "~> 0.5", only: [:dev, :test]},
       {:ex_check, "~> 0.12", only: [:dev, :test]}
     ]
@@ -221,14 +222,30 @@ defmodule AshGleam.MixProject do
         "docs",
         "spark.replace_doc_links"
       ],
-      sync_usage_rules: [
-        "usage_rules.sync AGENTS.md --all --link-to-folder deps --link-style at"
-      ],
       credo: "credo --strict"
       # "spark.formatter":
       #   "spark.formatter --extensions AshGleam.Rpc,AshGleam.Resource,AshGleam.TypedController.Dsl,AshGleam.TypedChannel.Dsl",
       # "spark.cheat_sheets":
       #   "spark.cheat_sheets --extensions AshGleam.Rpc,AshGleam.Resource,AshGleam.TypedController.Dsl,AshGleam.TypedChannel.Dsl"
+    ]
+  end
+
+  defp usage_rules do
+    # Example for those using claude.
+    [
+      file: "AGENTS.md",
+      # rules to include directly in CLAUDE.md
+      # :usage_rules itself provides rules for search_docs, docs, etc.
+      # use a regex to match multiple deps, or atoms/strings for specific ones
+      usage_rules: [:usage_rules, :ash, ~r/^ash_/],
+      # If your CLAUDE.md is getting too big, link instead of inlining:
+      usage_rules: [:ash, {~r/^ash_/, link: :markdown}]
+      # or use skills
+      # skills: [
+      #   location: ".codex/skills",
+      #   # build skills that combine multiple usage rules
+      #   build: build
+      # ]
     ]
   end
 end

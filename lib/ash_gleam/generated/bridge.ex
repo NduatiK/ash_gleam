@@ -24,9 +24,19 @@ defmodule AshGleam.Generated.Bridge do
     end)
   end
 
-  def decode_get(builder) do
-    {_constructor, id} = builder
-    id
+  def decode_action(builder, arguments) do
+    values =
+      case arguments do
+        [] -> []
+        _ -> builder |> Tuple.to_list() |> tl()
+      end
+
+    arguments
+    |> Enum.zip(values)
+    |> Map.new(fn {argument, value} ->
+      {argument[:name],
+       AshGleam.Marshal.output!(argument[:type], value, allow_nil?: argument[:allow_nil?])}
+    end)
   end
 
   def apply_read_builder(query, resource, builder) do
@@ -66,19 +76,8 @@ defmodule AshGleam.Generated.Bridge do
 
   defp decode_filter(_), do: nil
 
-  defp decode_sort(sort) when is_atom(sort) do
-    sort
-    |> Atom.to_string()
-    |> case do
-      value ->
-        cond do
-          String.ends_with?(value, "_asc") ->
-            {value |> String.trim_trailing("_asc") |> to_existing_atom(), :asc}
-
-          String.ends_with?(value, "_desc") ->
-            {value |> String.trim_trailing("_desc") |> to_existing_atom(), :desc}
-        end
-    end
+  defp decode_sort({sort, sorter}) when is_atom(sort) and sorter in [:asc, :desc] do
+    {sort, sorter}
   end
 
   defp to_existing_atom(value) when is_atom(value), do: value

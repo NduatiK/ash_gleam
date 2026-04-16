@@ -1,22 +1,41 @@
 defmodule AshGleam.FFITest do
   use ExUnit.Case, async: false
 
-  setup do
+  setup_all do
+    :ok = AshGleam.GeneratedGleamHelper.compile_and_load!()
+
     on_exit(fn ->
       Ash.DataLayer.Ets.stop(AshGleam.TestTodo)
-      AshGleam.GeneratedGleamHelper.purge_modules()
     end)
 
-    :ok = AshGleam.GeneratedGleamHelper.compile_and_load!()
+    :ok
+  end
+
+  setup do
+    try do
+      Ash.DataLayer.Ets.stop(AshGleam.TestTodo)
+    rescue
+      _ -> :ok
+    end
+
+    case :ets.whereis(:ash_gleam_test_todos) do
+      :undefined -> :ok
+      table -> :ets.delete_all_objects(table)
+    end
+
+    on_exit(fn ->
+      Ash.DataLayer.Ets.stop(AshGleam.TestTodo)
+    end)
+
     {:ok, bridge: AshGleam.TestDomain.Generated}
   end
 
   test "generated create ffi bridge creates a resource", %{bridge: _bridge} do
     create_todo_module = AshGleam.GeneratedGleamHelper.module_atom("create_todo")
 
-    builder = create_todo_module.new("Created from ffi", false)
+    builder = create_todo_module.new("Created from ffi", false, 3)
 
-    assert {:ok, {:todo, id, "Created from ffi", false}} =
+    assert {:ok, {:todo, id, "Created from ffi", false, 3}} =
              create_todo_module.run(builder)
 
     assert is_binary(id)
@@ -36,21 +55,49 @@ defmodule AshGleam.FFITest do
     get_todo_module = AshGleam.GeneratedGleamHelper.module_atom("get_todo")
     builder = get_todo_module.new(todo.id)
 
-    assert {:ok, {:todo, id, "Fetch me", false}} =
+    assert {:ok, {:todo, id, "Fetch me", false, 1}} =
              get_todo_module.run(builder)
 
     assert id == todo.id
   end
 
-  test "generated list ffi bridge applies filter, sort, and limit", %{bridge: _bridge} do
+  test "generated get ffi bridge supports first matching record with action-defined filter and sort",
+       %{bridge: _bridge} do
     AshGleam.TestTodo
-    |> Ash.Changeset.for_create(:create, %{title: "B task", completed: false},
+    |> Ash.Changeset.for_create(:create, %{title: "Zulu", completed: true},
       domain: AshGleam.TestDomain
     )
     |> Ash.create!(domain: AshGleam.TestDomain)
 
     AshGleam.TestTodo
-    |> Ash.Changeset.for_create(:create, %{title: "A task", completed: true},
+    |> Ash.Changeset.for_create(:create, %{title: "AAA Alpha", completed: true},
+      domain: AshGleam.TestDomain
+    )
+    |> Ash.create!(domain: AshGleam.TestDomain)
+
+    AshGleam.TestTodo
+    |> Ash.Changeset.for_create(:create, %{title: "Beta", completed: false},
+      domain: AshGleam.TestDomain
+    )
+    |> Ash.create!(domain: AshGleam.TestDomain)
+
+    first_completed_module = AshGleam.GeneratedGleamHelper.module_atom("first_completed_todo")
+
+    assert {:ok, {:todo, _id, "AAA Alpha", true, 1}} =
+             first_completed_module
+             |> apply(:new, [])
+             |> first_completed_module.run()
+  end
+
+  test "generated list ffi bridge applies filter, sort, and limit", %{bridge: _bridge} do
+    AshGleam.TestTodo
+    |> Ash.Changeset.for_create(:create, %{title: "! B task", completed: false},
+      domain: AshGleam.TestDomain
+    )
+    |> Ash.create!(domain: AshGleam.TestDomain)
+
+    AshGleam.TestTodo
+    |> Ash.Changeset.for_create(:create, %{title: "! A task", completed: true},
       domain: AshGleam.TestDomain
     )
     |> Ash.create!(domain: AshGleam.TestDomain)
@@ -68,7 +115,7 @@ defmodule AshGleam.FFITest do
       ])
       |> list_todos_module.limit({:some, 1})
 
-    assert {:ok, [{:todo, _id, "A task", true}]} =
+    assert {:ok, [{:todo, _id, "! A task", true, 1}]} =
              list_todos_module.run(builder)
   end
 
@@ -108,9 +155,12 @@ defmodule AshGleam.FFITest do
              list_todos_module.run(builder)
 
     assert 2 == length(results)
-    assert Enum.all?(results, fn {:todo, _id, title, _completed} -> title == "Filter target" end)
 
-    assert Enum.sort(Enum.map(results, fn {:todo, _id, _title, completed} -> completed end)) == [
+    assert Enum.all?(results, fn {:todo, _id, title, _completed, _priority} ->
+             title == "Filter target"
+           end)
+
+    assert Enum.sort(Enum.map(results, fn {:todo, _id, _title, completed,_priority} -> completed end)) == [
              false,
              true
            ]

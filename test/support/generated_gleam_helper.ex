@@ -20,15 +20,28 @@ defmodule AshGleam.GeneratedGleamHelper do
 
   def purge_modules do
     Enum.each(
-      [
-        AshGleam.TestDomain.Generated
-        | Enum.map(~w(todo_item list_todos create_todo get_todo), &module_atom/1)
-      ],
+      [AshGleam.TestDomain.Generated, :test_gleam | generated_module_atoms()],
       fn module ->
         :code.purge(module)
         :code.delete(module)
       end
     )
+  end
+
+  defp generated_module_atoms do
+    ebin_dir = "_build/test/lib/ash_gleam/ebin"
+    prefix = AshGleam.Info.gleam_module_prefix() |> String.replace("/", "@") |> Kernel.<>("@")
+
+    case File.ls(ebin_dir) do
+      {:ok, files} ->
+        files
+        |> Enum.filter(&String.starts_with?(&1, prefix))
+        |> Enum.map(&Path.rootname(&1))
+        |> Enum.map(&String.to_atom/1)
+
+      {:error, _} ->
+        []
+    end
   end
 
   def module_atom(name) do

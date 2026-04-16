@@ -69,7 +69,15 @@ defmodule AshGleam.Codegen.Manifest do
             ffi_name: action_entry.ffi_name,
             action: action_entry.action,
             kind: ffi_kind(action),
-            resource_gleam_module: resources[inspect(resource_entry.resource)].module_name
+            resource_gleam_module: resources[inspect(resource_entry.resource)].module_name,
+            arguments:
+              Enum.map(action.arguments, fn argument ->
+                %{
+                  name: argument.name,
+                  type: argument.type,
+                  allow_nil?: argument.allow_nil?
+                }
+              end)
           }
         end)
       end)
@@ -102,7 +110,7 @@ defmodule AshGleam.Codegen.Manifest do
     end)
   end
 
-  defp ffi_kind(%{name: :get}), do: :get
+  defp ffi_kind(%{get?: true}), do: :get
   defp ffi_kind(%{type: type}), do: type
 
   defp inspect_type(type) when is_atom(type), do: inspect(type)

@@ -50,11 +50,11 @@ defmodule AshGleam.Codegen.Renderer do
 
         """
         pub fn #{field_name}_asc() -> #{resource.gleam_type}Sort {
-          #{base}Asc
+          #{base}(Asc)
         }
 
         pub fn #{field_name}_desc() -> #{resource.gleam_type}Sort {
-          #{base}Desc
+          #{base}(Desc)
         }
         """
       end)
@@ -62,7 +62,7 @@ defmodule AshGleam.Codegen.Renderer do
     sorts =
       Enum.map_join(resource.fields, "\n", fn field ->
         base = Macro.camelize(to_string(field.name))
-        "  #{base}Asc\n  #{base}Desc"
+        "  #{base}(Sorter)"
       end)
 
     filter_helpers =
@@ -87,6 +87,11 @@ defmodule AshGleam.Codegen.Renderer do
       #{resource.gleam_type}(
     #{fields}
       )
+    }
+
+    pub type Sorter {
+      Asc
+      Desc
     }
 
     pub type #{resource.gleam_type}Sort {
@@ -147,17 +152,44 @@ defmodule AshGleam.Codegen.Renderer do
         """
 
       :get ->
-        pk = hd(resource.fields)
+        args =
+          Enum.map_join(ffi.arguments, ", ", fn argument ->
+            "#{argument.name}: #{gleam_type!(argument.type, argument.allow_nil?)}"
+          end)
+
+        type_fields =
+          Enum.map_join(ffi.arguments, ", ", fn argument ->
+            "#{argument.name}: #{gleam_type!(argument.type, argument.allow_nil?)}"
+          end)
+
+        constructor =
+          Enum.map_join(ffi.arguments, ", ", fn argument ->
+            argument.name
+          end)
+
+        type_definition =
+          if ffi.arguments == [] do
+            "#{action_module}"
+          else
+            "#{action_module}(#{type_fields})"
+          end
+
+        constructor_call =
+          if ffi.arguments == [] do
+            action_module
+          else
+            "#{action_module}(#{constructor})"
+          end
 
         """
         import #{resource_import}.{type #{resource_type}}
 
         pub type #{action_module} {
-          #{action_module}(id: #{gleam_type!(pk.type, false)})
+          #{type_definition}
         }
 
-        pub fn new(id: #{gleam_type!(pk.type, false)}) -> #{action_module} {
-          #{action_module}(id)
+        pub fn new(#{args}) -> #{action_module} {
+          #{constructor_call}
         }
 
         @external(erlang, "Elixir.#{inspect(domain_module)}.Generated", "#{ffi.ffi_name}")
@@ -248,10 +280,10 @@ defmodule AshGleam.Codegen.Renderer do
       :get ->
         """
           def #{ffi.ffi_name}(builder) do
-            id = AshGleam.Generated.Bridge.decode_get(builder)
+            params = AshGleam.Generated.Bridge.decode_action(builder, #{inspect(ffi.arguments)})
 
             #{inspect(resource.module)}
-            |> Query.for_read(#{inspect(ffi.action)}, %{id: id}, domain: #{inspect(domain_module)})
+            |> Query.for_read(#{inspect(ffi.action)}, params, domain: #{inspect(domain_module)})
             |> Ash.read_one(domain: #{inspect(domain_module)})
             |> AshGleam.Generated.Bridge.encode_result(&AshGleam.Marshal.to_gleam(#{inspect(resource.module)}, &1))
           end

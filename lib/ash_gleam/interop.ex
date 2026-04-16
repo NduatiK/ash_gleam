@@ -3,7 +3,9 @@
 # SPDX-License-Identifier: MIT
 
 defmodule AshGleam.Interop do
-  @moduledoc false
+  @moduledoc """
+  Call a gleam function from Elixir
+  """
 
   alias AshGleam.Error.ActionInterop
 
@@ -13,7 +15,7 @@ defmodule AshGleam.Interop do
   rescue
     error ->
       raise ActionInterop,
-        message: "Gleam interop call failed",
+        message: "Gleam interop call failed (#{inspect(error)})",
         resource: opts[:resource],
         action: opts[:action],
         details: %{

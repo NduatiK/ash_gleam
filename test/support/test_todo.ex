@@ -19,22 +19,29 @@ defmodule AshGleam.TestTodo do
     uuid_primary_key :id
     attribute :title, :string, allow_nil?: false, public?: true
     attribute :completed, :boolean, allow_nil?: false, default: false, public?: true
+    attribute :priority, :integer, allow_nil?: false, default: 1, public?: true
   end
 
   actions do
     defaults [:read]
 
     create :create do
-      accept [:title, :completed]
+      accept [:title, :completed, :priority]
     end
 
     update :update do
-      accept [:title, :completed]
+      accept [:title, :completed, :priority]
       require_atomic? false
     end
 
     read :get do
       get_by [:id]
+    end
+
+    read :first_completed do
+      get? true
+      filter expr(completed == true)
+      prepare build(sort: [title: :asc], limit: 1)
     end
   end
 
@@ -50,6 +57,10 @@ defmodule AshGleam.TestTodo do
       argument :todo, __MODULE__, allow_nil?: false
 
       run &:test_gleam.mark_completed/1
+    end
+
+    action :first_completed_from_elixir, __MODULE__ do
+      run &:test_gleam.first_completed_from_elixir/0
     end
   end
 end

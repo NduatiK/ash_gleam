@@ -2,6 +2,17 @@ defmodule AshGleam.RuntimeTest do
   use ExUnit.Case, async: false
 
   setup do
+    try do
+      Ash.DataLayer.Ets.stop(AshGleam.TestTodo)
+    rescue
+      _ -> :ok
+    end
+
+    case :ets.whereis(:ash_gleam_test_todos) do
+      :undefined -> :ok
+      table -> :ets.delete_all_objects(table)
+    end
+
     on_exit(fn -> Ash.DataLayer.Ets.stop(AshGleam.TestTodo) end)
     :ok
   end
@@ -19,6 +30,29 @@ defmodule AshGleam.RuntimeTest do
     assert {:ok, updated} = AshGleam.TestTodo.mark_completed(%{todo: todo})
     assert %AshGleam.TestTodo{id: id, title: "Ship tests", completed: true} = updated
     assert id == todo.id
+  end
+
+  test "gleam action can fetch resource data from elixir and return the generated todo record" do
+    AshGleam.TestTodo
+    |> Ash.Changeset.for_create(:create, %{title: "Zulu", completed: true},
+      domain: AshGleam.TestDomain
+    )
+    |> Ash.create!(domain: AshGleam.TestDomain)
+
+    AshGleam.TestTodo
+    |> Ash.Changeset.for_create(:create, %{title: "AAA Alpha", completed: true},
+      domain: AshGleam.TestDomain
+    )
+    |> Ash.create!(domain: AshGleam.TestDomain)
+
+    AshGleam.TestTodo
+    |> Ash.Changeset.for_create(:create, %{title: "Incomplete", completed: false},
+      domain: AshGleam.TestDomain
+    )
+    |> Ash.create!(domain: AshGleam.TestDomain)
+
+    assert {:ok, fetched} = AshGleam.TestTodo.first_completed_from_elixir(%{})
+    assert %AshGleam.TestTodo{title: "AAA Alpha", completed: true} = fetched
   end
 
   test "resource-returning gleam actions stay pure until diffed and persisted through Ash" do
@@ -66,12 +100,12 @@ defmodule AshGleam.RuntimeTest do
     assert AshGleam.Marshal.output!({:array, :integer}, [1, 2, 3]) == [1, 2, 3]
 
     assert AshGleam.Marshal.to_gleam(AshGleam.TestTodo, todo) ==
-             {:todo, "todo-1", "Write docs", false}
+             {:todo, "todo-1", "Write docs", false, 1}
 
     assert %AshGleam.TestTodo{id: "todo-1", title: "Write docs", completed: false} =
              AshGleam.Marshal.from_gleam(
                AshGleam.TestTodo,
-               {:todo, "todo-1", "Write docs", false}
+               {:todo, "todo-1", "Write docs", false, 1}
              )
   end
 end

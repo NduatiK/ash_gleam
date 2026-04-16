@@ -12,6 +12,7 @@ defmodule AshGleam.TestDomain do
       action :list_todos, :read
       action :create_todo, :create
       action :get_todo, :get
+      action :first_completed_todo, :first_completed
     end
   end
 end
