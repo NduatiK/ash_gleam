@@ -79,7 +79,6 @@ if Code.ensure_loaded?(Igniter) do
           {:ok, {:code, quote(do: [:gleam | Mix.compilers()])}}
 
         zipper ->
-          IO.inspect(zipper)
           try_put(
             zipper,
             :gleam,
@@ -98,8 +97,21 @@ if Code.ensure_loaded?(Igniter) do
 
         :error ->
           case Igniter.Code.List.prepend_new_to_list(zipper, value) do
-            {:ok, zipper} -> {:ok, zipper}
-            :error -> {:warning, error}
+            {:ok, zipper} ->
+              {:ok, zipper}
+
+            :error ->
+              # Handle `[...] ++ Mix.compilers()` — cursor lands on the left-side list
+              case Igniter.Code.Common.move_to_cursor(zipper, "__cursor__() ++ Mix.compilers()") do
+                {:ok, left_zipper} ->
+                  case Igniter.Code.List.prepend_new_to_list(left_zipper, value) do
+                    {:ok, updated} -> {:ok, updated}
+                    :error -> {:warning, error}
+                  end
+
+                :error ->
+                  {:warning, error}
+              end
           end
       end
     end
