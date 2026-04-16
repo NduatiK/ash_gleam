@@ -15,6 +15,7 @@
   "fine": {:hex, :fine, "0.1.6", "4bf7151493443c454aac9f2fa2f34f5fefd0346a83fb5586a016c4a135c63247", [:mix], [], "hexpm", "5638eb4495488e885ebec167fa57973e5c35e1a50c344eb7666c90ec1c4e3b12"},
   "gettext": {:hex, :gettext, "1.0.2", "5457e1fd3f4abe47b0e13ff85086aabae760497a3497909b8473e0acee57673b", [:mix], [{:expo, "~> 0.5.1 or ~> 1.0", [hex: :expo, repo: "hexpm", optional: false]}], "hexpm", "eab805501886802071ad290714515c8c4a17196ea76e5afc9d06ca85fb1bfeb3"},
   "gleam_stdlib": {:hex, :gleam_stdlib, "0.71.0", "6e26e3463d44c6d5f071bb25fad7165ac1c2b47dd45c0e4fccdbc0e7791e85c7", [:gleam], [], "hexpm", "702f3bc2a14793906880b1078b19a6165f87323aee8d0c4a34085846336fcaae"},
+  "gleeunit": {:hex, :gleeunit, "1.9.0", "643b5099e5891d67c806a3228c846b1e4f600a733358fb3adf45eb616bb29d6f", [:gleam], [{:gleam_stdlib, ">= 0.60.0 and < 1.0.0", [hex: :gleam_stdlib, repo: "hexpm", optional: false]}], "hexpm", "da9553ce58b67924b3c631f96fe3370c49eb6d6dc6b384ec4862cc4aaa718f3c"},
   "glob_ex": {:hex, :glob_ex, "0.1.11", "cb50d3f1ef53f6ca04d6252c7fde09fd7a1cf63387714fe96f340a1349e62c93", [:mix], [], "hexpm", "342729363056e3145e61766b416769984c329e4378f1d558b63e341020525de4"},
   "heroicons": {:git, "https://github.com/tailwindlabs/heroicons.git", "0435d4ca364a608cc75e2f8683d374e55abbae26", [tag: "v2.2.0", sparse: "optimized", depth: 1]},
   "hpax": {:hex, :hpax, "1.0.3", "ed67ef51ad4df91e75cc6a1494f851850c0bd98ebc0be6e81b026e765ee535aa", [:mix], [], "hexpm", "8eab6e1cfa8d5918c2ce4ba43588e894af35dbd8e91e6e55c817bca5847df34a"},

@@ -66,6 +66,7 @@ config :example, ExampleWeb.Endpoint,
 # For production it's recommended to configure a different adapter
 # at the `config/runtime.exs`.
 config :example, Example.Mailer, adapter: Swoosh.Adapters.Local
+config :example, :ash_domains, [Example.Games]
 
 # Configure esbuild (the version is required)
 config :esbuild,

@@ -292,6 +292,75 @@ config :ash_gleam,
 
 The generated output directory must be under a `src/` parent so that Gleam's module path resolution works. The module prefix used in `import` statements is derived from the path automatically.
 
+## Installation
+
+### With Igniter (recommended)
+
+```bash
+mix igniter.install ash_gleam
+# If testing locally:
+mix igniter.install ash_gleam@path:..
+```
+
+This automatically configures your `mix.exs` with all the settings required by
+[MixGleam](https://github.com/gleam-lang/mix_gleam): compilers, `erlc_paths`,
+`erlc_include_path`, `prune_code_paths`, the `deps.get` alias, and the
+`gleam_stdlib` / `gleeunit` dependencies. It also creates the `src/` directory
+and adds `build/` to your `.gitignore`.
+
+You will still need to install the Gleam compiler and the MixGleam archive:
+
+```bash
+# Install the Gleam compiler — see https://gleam.run/getting-started/installing-gleam.html
+
+# Install the MixGleam Mix archive
+mix archive.install hex mix_gleam
+```
+
+### Manual setup
+
+Add `ash_gleam` to your dependencies:
+
+```elixir
+# mix.exs
+defp deps do
+  [
+    {:ash_gleam, "~> 0.1"},
+    {:gleam_stdlib, "~> 0.34 or ~> 1.0"},
+    {:gleeunit, "~> 1.0", only: [:dev, :test], runtime: false}
+  ]
+end
+```
+
+Then follow the [MixGleam README](https://github.com/gleam-lang/mix_gleam) to
+configure your project:
+
+```elixir
+# mix.exs
+@app :my_app
+
+def project do
+  [
+    app: @app,
+    # ...
+    archives: [mix_gleam: "~> 0.6"],
+    compilers: [:gleam | Mix.compilers()],
+    aliases: [
+      "deps.get": ["deps.get", "gleam.deps.get"]
+    ],
+    erlc_paths: [
+      "_build/dev/erlang/#{@app}/_gleam_artefacts",
+      "_build/dev/erlang/#{@app}/build"
+    ],
+    erlc_include_path: "_build/dev/erlang/#{@app}/include",
+    prune_code_paths: false
+  ]
+end
+```
+
+Create a `src/` directory for your Gleam source files and add `build/` to your
+`.gitignore`.
+
 ## Requirements
 
 - Elixir 1.15+

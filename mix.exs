@@ -6,11 +6,11 @@ defmodule AshGleam.MixProject do
   use Mix.Project
 
   @app :ash_gleam
-  @version "0.17.1"
+  @version "0.1.0"
 
-  @description """
-  Generate type-safe Gleam clients directly from your Ash resources and actions, ensuring end-to-end type safety between your backend and frontend.
-  """
+  # @description """
+  # Generate type-safe Gleam clients directly from your Ash resources and actions, ensuring end-to-end type safety between your backend and frontend.
+  # """
 
   def project do
     [
@@ -22,7 +22,7 @@ defmodule AshGleam.MixProject do
       aliases: aliases(),
       deps: deps(),
       archives: [mix_gleam: "~> 0.6.2"],
-      compilers: [:gleam | Mix.compilers()],
+      compilers: compilers(Mix.env()),
       erlc_paths: erlc_paths(Mix.env()),
       erlc_include_path: "_build/#{Mix.env()}/lib/#{@app}/include",
       prune_code_paths: false,
@@ -31,10 +31,11 @@ defmodule AshGleam.MixProject do
     ]
   end
 
-
-
   defp elixirc_paths(:test), do: ["lib", "test/support"]
   defp elixirc_paths(_), do: ["lib"]
+
+  defp compilers(:test), do: [:gleam | Mix.compilers()]
+  defp compilers(_), do: Mix.compilers()
 
   defp erlc_paths(env) do
     env = to_string(env)
@@ -62,13 +63,12 @@ defmodule AshGleam.MixProject do
     ]
   end
 
-
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
       {:ash, "~> 3.2 and >= 3.21.1"},
-      {:gleam_stdlib, "~> 0.62"},
-      {:gleeunit, "~> 1.0", only: [:dev, :test], runtime: false},
+      {:gleam_stdlib, "~> 0.62", only: [:test]},
+      {:gleeunit, "~> 1.0", only: [:test], runtime: false},
       {:git_ops, "~> 2.0", only: [:dev], runtime: false},
       {:spark, "~> 2.0"},
       {:sourceror, "~> 1.7", only: [:dev, :test]},

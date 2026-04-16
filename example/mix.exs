@@ -10,9 +10,16 @@ defmodule Example.MixProject do
       start_permanent: Mix.env() == :prod,
       aliases: aliases(),
       deps: deps(),
-      compilers: [:phoenix_live_view] ++ Mix.compilers(),
+      compilers: [:gleam, :phoenix_live_view] ++ Mix.compilers(),
       listeners: [Phoenix.CodeReloader],
-      consolidate_protocols: Mix.env() != :dev
+      consolidate_protocols: Mix.env() != :dev,
+      archives: [mix_gleam: "~> 0.6"],
+      erlc_paths: [
+        "_build/dev/erlang/example/_gleam_artefacts",
+        "_build/dev/erlang/example/build"
+      ],
+      erlc_include_path: "_build/dev/erlang/example/include",
+      prune_code_paths: false
     ]
   end
 
@@ -41,6 +48,8 @@ defmodule Example.MixProject do
   # Type `mix help deps` for examples and options.
   defp deps do
     [
+      {:gleeunit, "~> 1.0", only: [:dev, :test], runtime: false},
+      {:gleam_stdlib, "~> 0.34 or ~> 1.0"},
       {:sourceror, "~> 1.8", only: [:dev, :test]},
       {:ash, "~> 3.0"},
       {:igniter, "~> 0.6", only: [:dev, :test]},
@@ -68,7 +77,7 @@ defmodule Example.MixProject do
       {:dns_cluster, "~> 0.2.0"},
       {:bandit, "~> 1.5"},
       # 
-      {:ash_gleam, path: ".."},
+      {:ash_gleam, [path: "..", override: true]}
     ]
   end
 
@@ -88,7 +97,8 @@ defmodule Example.MixProject do
         "esbuild example --minify",
         "phx.digest"
       ],
-      precommit: ["compile --warnings-as-errors", "deps.unlock --unused", "format", "test"]
+      precommit: ["compile --warnings-as-errors", "deps.unlock --unused", "format", "test"],
+      "deps.get": ["deps.get", "gleam.deps.get"]
     ]
   end
 end

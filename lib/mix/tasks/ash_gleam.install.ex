@@ -60,15 +60,8 @@ if Code.ensure_loaded?(Igniter) do
     # Add archives: [mix_gleam: "~> 0.6"] to project/0
     defp add_mix_gleam_archive(igniter) do
       MixProject.update(igniter, :project, [:archives], fn
-        nil ->
+        _ ->
           {:ok, {:code, [{:mix_gleam, "~> 0.6"}]}}
-
-        zipper ->
-          try_put(
-            zipper,
-            {:mix_gleam, "~> 0.6"},
-            "Could not add `mix_gleam: \"~> 0.6\"` to archives. Please add it manually."
-          )
       end)
     end
 
