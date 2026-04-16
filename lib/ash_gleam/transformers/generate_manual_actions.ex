@@ -14,7 +14,6 @@ defmodule AshGleam.Transformers.GenerateManualActions do
     dsl_state
     |> Spark.Dsl.Transformer.get_entities([:gleam_actions])
     |> Enum.reduce_while({:ok, dsl_state}, fn action, {:ok, dsl_state} ->
-
       case build_action(action, resource) do
         {:ok, ash_action} ->
           dsl_state =
@@ -32,7 +31,7 @@ defmodule AshGleam.Transformers.GenerateManualActions do
 
   defp build_action(action, resource) do
     with {:ok, args} <- build_arguments(action.arguments, resource),
-         {:ok, {return_type, constraints}} <- (ash_type(action.return_type, resource) ) do
+         {:ok, {return_type, constraints}} <- ash_type(action.return_type, resource) do
       Transformer.build_entity(
         Ash.Resource.Dsl,
         [:actions],
@@ -49,7 +48,7 @@ defmodule AshGleam.Transformers.GenerateManualActions do
 
   defp build_arguments(arguments, resource) do
     Enum.reduce_while(arguments, {:ok, []}, fn argument, {:ok, built} ->
-      case ash_type(argument.type, resource ) do
+      case ash_type(argument.type, resource) do
         {:ok, {type, constraints}} ->
           case Transformer.build_entity(
                  Ash.Resource.Dsl,
@@ -60,7 +59,9 @@ defmodule AshGleam.Transformers.GenerateManualActions do
                  constraints: constraints,
                  allow_nil?: argument.allow_nil?
                ) do
-            {:ok, entity} -> {:cont, {:ok, built ++ [entity]}}
+            {:ok, entity} ->
+              {:cont, {:ok, built ++ [entity]}}
+
             {:error, error} ->
               {:halt, {:error, error}}
           end

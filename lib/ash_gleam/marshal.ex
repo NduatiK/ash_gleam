@@ -39,7 +39,8 @@ defmodule AshGleam.Marshal do
     end
   rescue
     error ->
-      # IO.inspect(error)
+      IO.inspect(error)
+
       raise ActionInterop,
         message: "Failed to marshal output",
         details: %{phase: :marshal_output, type: type, error: Exception.message(error)}
@@ -112,7 +113,6 @@ defmodule AshGleam.Marshal do
 
   defp marshal(type, value, opts, :to_gleam) when is_atom(type) do
     constraints = Keyword.get(opts, :constraints, [])
-
 
     case AshGleam.TypeMapper.normalize(type, constraints) do
       {:ok, {:scalar, _}} -> value

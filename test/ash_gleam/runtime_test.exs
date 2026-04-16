@@ -184,7 +184,8 @@ defmodule AshGleam.RuntimeTest do
            } =
              AshGleam.Marshal.from_gleam(
                AshGleam.TestGame,
-               {:game, "game-1", "Tic Tac Toe", :x, :in_progress, :draw}
+               {:game, "game-1", "Tic Tac Toe", [nil, nil, nil, nil, nil, nil, nil, nil, nil], :x,
+                :in_progress, :draw}
              )
   end
 

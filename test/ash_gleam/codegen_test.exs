@@ -102,6 +102,12 @@ defmodule AshGleam.CodegenTest do
               allow_nil? true
               constraints one_of: [:x, :o, :draw]
             end
+
+            attribute :board, {:array, :atom} do
+              public? true
+              allow_nil? true
+              constraints items: [one_of: [:x, :o, :empty]]
+            end
           end
         end
       end
@@ -123,7 +129,7 @@ defmodule AshGleam.CodegenTest do
     gleam_src = AshGleam.Info.gleam_dir(output: tmp)
     generated = File.read!(Path.join(gleam_src, "tic_tac_toe.gleam"))
     current_player_types = File.read!(Path.join(gleam_src, "current_player.gleam"))
-    board = File.read!(Path.join(gleam_src, "board.gleam"))
+    assert File.read!(Path.join(gleam_src, "board.gleam"))
     winner_types = File.read!(Path.join(gleam_src, "winner.gleam"))
 
     refute generated =~ "pub type CurrentPlayer {\n  X\n  O\n}"

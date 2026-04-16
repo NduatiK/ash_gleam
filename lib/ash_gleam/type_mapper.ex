@@ -135,7 +135,7 @@ defmodule AshGleam.TypeMapper do
 
       {:ok, {:scalar, :uuid}} ->
         {:ok, "String"}
-      
+
       {:ok, {:scalar, :term}} ->
         {:ok, "String"}
 

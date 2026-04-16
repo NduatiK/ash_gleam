@@ -54,13 +54,8 @@ defmodule AshGleam.Codegen.Renderer do
       [%{path: "#{resource.module_name}.gleam", contents: render_resource(resource, prefix)}]
   end
 
-  defp render_atom_type_module(resource, prefix, %{name: type_name, variants: variants}) do
-    resource_import = ""
-    # "import #{prefix}/#{resource.module_name}.{type #{resource.gleam_type}}"
-
+  defp render_atom_type_module(_resource, _prefix, %{name: type_name, variants: variants}) do
     """
-    #{resource_import}
-
     pub type #{type_name} {
     #{Enum.map_join(variants, "\n", fn variant -> "  #{variant}" end)}
     }
@@ -85,7 +80,7 @@ defmodule AshGleam.Codegen.Renderer do
     end
   end
 
-  defp atom_type_imports(resource, fields, prefix) do
+  defp atom_type_imports(_resource, fields, prefix) do
     fields
     |> atom_type_definitions()
     |> Enum.map_join("\n", fn %{module_name: module_name, name: type_name} ->
@@ -104,7 +99,7 @@ defmodule AshGleam.Codegen.Renderer do
   end
 
   defp field_atom_type_definition(
-         %{name: field_name, type: type, constraints: constraints} = attribute
+         %{name: field_name, type: type, constraints: constraints} 
        )
        when type in [:atom, Ash.Type.Atom, {:array, :atom}, {:array, Ash.Type.Atom}] do
     do_x = fn values ->
@@ -150,10 +145,6 @@ defmodule AshGleam.Codegen.Renderer do
   defp field_atom_type_definition(_field) do
     []
   end
-
-  defp atom_enum_values({:atom_enum, values}), do: values
-  defp atom_enum_values({:array, inner}), do: atom_enum_values(inner)
-  defp atom_enum_values(_), do: nil
 
   defp atom_variant!(value) when is_atom(value), do: value |> Atom.to_string() |> Macro.camelize()
 
@@ -215,7 +206,7 @@ defmodule AshGleam.Codegen.Renderer do
       end)
 
     """
-    import gleam/option.{type Option}
+    #{if(String.contains?(fields,"Option("),do: "import gleam/option.{type Option}",else: "")}
     #{imports}#{atom_imports}pub type #{resource.gleam_type} {
       #{resource.gleam_type}(
     #{fields}

@@ -2,7 +2,7 @@ import gleam/list
 import test_generated/src/destroy_todo
 import test_generated/src/first_completed_todo
 import test_generated/src/project_item.{type Project, Project}
-import test_generated/src/task.{type Task, Task}
+import test_generated/src/task.{Task}
 import test_generated/src/todo_item.{type Todo, Todo}
 
 pub fn mark_completed(item: Todo) -> Todo {
