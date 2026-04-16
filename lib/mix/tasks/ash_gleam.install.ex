@@ -111,8 +111,8 @@ if Code.ensure_loaded?(Igniter) do
 
     # Add erlc_paths pointing to Gleam artefacts
     defp add_erlc_paths(igniter, app_name) do
-      gleam_artefacts = "_build/dev/erlang/#{app_name}/_gleam_artefacts"
-      gleam_build = "_build/dev/erlang/#{app_name}/build"
+      gleam_artefacts = "_build/dev/lib/#{app_name}/_gleam_artefacts"
+      gleam_build = "_build/dev/lib/#{app_name}/build"
 
       MixProject.update(igniter, :project, [:erlc_paths], fn
         nil ->
@@ -132,7 +132,7 @@ if Code.ensure_loaded?(Igniter) do
 
     # Set erlc_include_path for Gleam-generated include files
     defp add_erlc_include_path(igniter, app_name) do
-      include_path = "_build/dev/erlang/#{app_name}/include"
+      include_path = "_build/dev/lib/#{app_name}/include"
 
       MixProject.update(igniter, :project, [:erlc_include_path], fn
         nil -> {:ok, {:code, "\"#{include_path}\""}}

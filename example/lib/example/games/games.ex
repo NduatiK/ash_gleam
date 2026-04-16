@@ -3,14 +3,16 @@ defmodule Example.Games do
     otp_app: :example,
     extensions: [AshGleam.FFI]
 
-  resources do
-    resource Example.Games.TicTacToe
-  end
-
   gleam_ffi do
     resource Example.Games.TicTacToe do
       # action :create_project, :create
       # action :get_project, :get
     end
   end
+
+  resources do
+    resource Example.Games.TicTacToe  do
+      define :new_tictactoe, action: :create
+  end
+end
 end

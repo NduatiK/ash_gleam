@@ -15,10 +15,10 @@ defmodule Example.MixProject do
       consolidate_protocols: Mix.env() != :dev,
       archives: [mix_gleam: "~> 0.6"],
       erlc_paths: [
-        "_build/dev/erlang/example/_gleam_artefacts",
-        "_build/dev/erlang/example/build"
+        "_build/dev/lib/example/_gleam_artefacts",
+        "_build/dev/lib/example/build"
       ],
-      erlc_include_path: "_build/dev/erlang/example/include",
+      erlc_include_path: "_build/dev/lib/example/include",
       prune_code_paths: false
     ]
   end

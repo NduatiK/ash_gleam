@@ -10,73 +10,69 @@ defmodule Example.Games.TicTacToe do
   end
 
   gleam do
-    type_name "TicTacToe"
+    type_name("TicTacToe")
+  end
+
+  gleam_actions do
+    action :win, __MODULE__ do
+      argument :game, __MODULE__, allow_nil?: false
+
+      run &:tictactoe.win/1
+    end
+
+    action :mark, __MODULE__ do
+      argument :game, __MODULE__, allow_nil?: false
+      argument :x, :integer, allow_nil?: false
+      argument :y, :integer, allow_nil?: false
+
+      run &:tictactoe.mark/3
+    end
+    
+    action :peek, :integer do
+      # TODO support atom with constraints items: [one_of: [:x, :o, :empty]]
+      # 
+      argument :game, __MODULE__, allow_nil?: false
+      argument :x, :integer, allow_nil?: false
+      argument :y, :integer, allow_nil?: false
+
+      run &:tictactoe.peek/3
+    end
+  end
+
+  actions do
+    create :create do
+    end
   end
 
   attributes do
     uuid_primary_key :id
 
     attribute :board, {:array, :atom} do
-      constraints items: [one_of: [:x, :o]]
-      default [nil, nil, nil, nil, nil, nil, nil, nil, nil]
+      allow_nil? false
+      public? true
+      constraints items: [one_of: [:x, :o, :empty]]
+      default [:empty, :empty, :empty, :empty, :empty, :empty, :empty, :empty, :empty]
     end
 
-  attribute :current_player, :atom do
-    allow_nil? false
-    constraints one_of: [:x, :o]
-    default :x
-  end
+    attribute :current_player, :atom do
+      allow_nil? false
+      public? true
+      constraints one_of: [:x, :o]
+      default :x
+    end
 
-  attribute :winner, :atom do
-    allow_nil? true
-    constraints one_of: [:x, :o, :draw]
-  end
+    attribute :winner, :atom do
+      public? true
+      allow_nil? true
+      constraints one_of: [:x, :o, :draw]
+    end
 
-  attribute :status, :atom do
-    allow_nil? false
-    constraints one_of: [:in_progress, :finished]
-    default :in_progress
-  end
-end
+    attribute :status, :atom do
+      public? true
 
-  actions do
-  end
-
-  gleam_actions do
-    # action :add, :integer do
-    #   argument :a, :integer, allow_nil?: false
-    #   argument :b, :integer, allow_nil?: false
-
-    #   run &:test_gleam.add/2
-    # end
-
-    # action :safe_add, :integer do
-    #   argument :a, :integer, allow_nil?: false
-    #   argument :b, :integer, allow_nil?: false
-
-    #   run &:test_gleam.safe_add/2
-    # end
-
-    # action :mark_completed, __MODULE__ do
-    #   argument :todo, __MODULE__, allow_nil?: false
-
-    #   run &:test_gleam.mark_completed/1
-    # end
-
-    # action :safe_mark_completed, __MODULE__ do
-    #   argument :todo, __MODULE__, allow_nil?: false
-
-    #   run &:test_gleam.safe_mark_completed/1
-    # end
-
-    # action :first_completed_from_elixir, __MODULE__ do
-    #   run &:test_gleam.first_completed_from_elixir/0
-    # end
-
-    # action :delete_from_elixir, :boolean do
-    #   argument :todo, __MODULE__, allow_nil?: false
-
-    #   run &:test_gleam.delete_from_elixir/1
-    # end
+      allow_nil? false
+      constraints one_of: [:in_progress, :finished]
+      default :in_progress
+    end
   end
 end

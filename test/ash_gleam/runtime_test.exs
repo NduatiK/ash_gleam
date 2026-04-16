@@ -172,7 +172,8 @@ defmodule AshGleam.RuntimeTest do
     }
 
     assert AshGleam.Marshal.to_gleam(AshGleam.TestGame, game) ==
-             {:game, "game-1", "Tic Tac Toe", :x, :in_progress, :draw}
+             {:game, "game-1", "Tic Tac Toe", [nil, nil, nil, nil, nil, nil, nil, nil, nil], :x,
+              :in_progress, :draw}
 
     assert %AshGleam.TestGame{
              id: "game-1",
@@ -197,7 +198,8 @@ defmodule AshGleam.RuntimeTest do
     }
 
     assert AshGleam.Marshal.to_gleam(AshGleam.TestGame, game) ==
-             {:game, "game-2", "Tic Tac Toe", :o, :finished, :none}
+             {:game, "game-2", "Tic Tac Toe", [nil, nil, nil, nil, nil, nil, nil, nil, nil], :o,
+              :finished, :none}
 
     assert %AshGleam.TestGame{
              id: "game-2",
@@ -208,7 +210,8 @@ defmodule AshGleam.RuntimeTest do
            } =
              AshGleam.Marshal.from_gleam(
                AshGleam.TestGame,
-               {:game, "game-2", "Tic Tac Toe", :o, :finished, :none}
+               {:game, "game-2", "Tic Tac Toe", [nil, nil, nil, nil, nil, nil, nil, nil, nil], :o,
+                :finished, :none}
              )
   end
 

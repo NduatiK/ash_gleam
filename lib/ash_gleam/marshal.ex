@@ -16,6 +16,8 @@ defmodule AshGleam.Marshal do
     end
   rescue
     error ->
+      # IO.inspect(error)
+
       raise ActionInterop,
         message: "Failed to marshal input",
         details: %{phase: :marshal_input, type: type, error: Exception.message(error)}
@@ -53,6 +55,7 @@ defmodule AshGleam.Marshal do
       resource
       |> AshGleam.Resource.Info.fields()
       |> Enum.map(fn field ->
+        # IO.inspect({"field", field})
         field_value = Map.get(value, field.name)
 
         input!(field.type, field_value,
@@ -94,12 +97,22 @@ defmodule AshGleam.Marshal do
 
   defp marshal(type, value, opts, direction)
 
-  defp marshal({:array, inner}, value, _opts, direction) when is_list(value) do
-    Enum.map(value, &marshal(inner, &1, [], direction))
+  defp marshal({:array, inner}, value, opts, direction) when is_list(value) do
+    Enum.map(
+      value,
+      &marshal(
+        inner,
+        &1,
+        [constraints: Keyword.get(opts, :constraints, []) |> Keyword.get(:items, [])],
+        direction
+      )
+    )
   end
 
   defp marshal(type, value, opts, :to_gleam) when is_atom(type) do
     constraints = Keyword.get(opts, :constraints, [])
+
+    # IO.inspect({"106", type, value, opts})
 
     case AshGleam.TypeMapper.normalize(type, constraints) do
       {:ok, {:scalar, _}} -> value

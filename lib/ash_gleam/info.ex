@@ -5,7 +5,7 @@
 defmodule AshGleam.Info do
   @moduledoc false
 
-  @default_output "lib/ash_gleam/generated"
+  @default_output "src/generated"
 
   @spec otp_app(Keyword.t()) :: atom()
   def otp_app(opts \\ []) do

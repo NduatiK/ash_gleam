@@ -17,7 +17,7 @@ defmodule ExampleWeb.Router do
   scope "/", ExampleWeb do
     pipe_through :browser
 
-    get "/", PageController, :home
+    live "/", Example.GameLive
   end
 
   # Other scopes may use custom stacks.

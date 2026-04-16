@@ -23,6 +23,12 @@ defmodule AshGleam.TestGame do
       public? true
     end
 
+    attribute :board, {:array, :atom} do
+      public? true
+      constraints items: [one_of: [:x, :o]]
+      default [nil, nil, nil, nil, nil, nil, nil, nil, nil]
+    end
+
     attribute :current_player, :atom do
       allow_nil? false
       public? true

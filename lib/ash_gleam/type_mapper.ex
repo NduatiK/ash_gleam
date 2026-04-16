@@ -6,7 +6,7 @@ defmodule AshGleam.TypeMapper do
   @moduledoc false
 
   @scalar_types [:string, :integer, :boolean, :float, :decimal, :uuid]
-  @type_constraints [:one_of]
+  @type_constraints [:one_of, :items]
   @scalar_type_modules %{
     Ash.Type.String => :string,
     Ash.Type.Integer => :integer,
@@ -45,9 +45,9 @@ defmodule AshGleam.TypeMapper do
     end
   end
 
-  def normalize(type, constraints) when type in @scalar_types, do: {:ok, {:scalar, type}}
+  def normalize(type, _constraints) when type in @scalar_types, do: {:ok, {:scalar, type}}
 
-  def normalize(:atom, constraints) do
+  def normalize(atom, constraints) when atom in [:atom, Ash.Type.Atom] do
     case Keyword.take(constraints, @type_constraints) do
       [one_of: values] when is_list(values) and values != [] ->
         {:ok, {:atom_enum, values}}

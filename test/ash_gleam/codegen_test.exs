@@ -123,6 +123,7 @@ defmodule AshGleam.CodegenTest do
     gleam_src = AshGleam.Info.gleam_dir(output: tmp)
     generated = File.read!(Path.join(gleam_src, "tic_tac_toe.gleam"))
     current_player_types = File.read!(Path.join(gleam_src, "current_player.gleam"))
+    board = File.read!(Path.join(gleam_src, "board.gleam"))
     winner_types = File.read!(Path.join(gleam_src, "winner.gleam"))
 
     refute generated =~ "pub type CurrentPlayer {\n  X\n  O\n}"
@@ -185,6 +186,74 @@ defmodule AshGleam.CodegenTest do
       end)
 
     assert output =~ "Unsupported fields: status"
+  end
+
+  test "codegen emits Gleam union types for constrained arrays of atoms" do
+    suffix = System.unique_integer([:positive])
+    domain = Module.concat([AshGleam, Dynamic, :"AtomArrayDomain#{suffix}"])
+    resource = Module.concat([AshGleam, Dynamic, :"AtomArrayResource#{suffix}"])
+
+    quoted =
+      quote do
+        defmodule unquote(domain) do
+          use Ash.Domain, otp_app: :ash_gleam
+
+          resources do
+            resource unquote(resource)
+          end
+        end
+
+        defmodule unquote(resource) do
+          use Ash.Resource,
+            otp_app: :ash_gleam,
+            domain: unquote(domain),
+            data_layer: Ash.DataLayer.Ets,
+            extensions: [AshGleam.Resource]
+
+          ets do
+            private? true
+          end
+
+          gleam do
+            type_name "BoardState"
+            module_name "board_state"
+          end
+
+          attributes do
+            uuid_primary_key :id
+
+            attribute :board, {:array, :atom} do
+              public? true
+              allow_nil? false
+              constraints items: [one_of: [:x, :o, :empty]]
+            end
+          end
+        end
+      end
+
+    compiled = Code.compile_quoted(quoted)
+    assert length(compiled) >= 2
+
+    tmp = Path.join(System.tmp_dir!(), "ash_gleam_codegen_atom_arrays_#{suffix}")
+
+    on_exit(fn ->
+      File.rm_rf(tmp)
+      Application.put_env(:ash_gleam, :ash_domains, [AshGleam.TestDomain])
+    end)
+
+    Application.put_env(:ash_gleam, :ash_domains, [domain])
+
+    assert :ok = AshGleam.codegen(otp_app: :ash_gleam, output: tmp)
+
+    gleam_src = AshGleam.Info.gleam_dir(output: tmp)
+    generated = File.read!(Path.join(gleam_src, "board_state.gleam"))
+    board_types = File.read!(Path.join(gleam_src, "board.gleam"))
+
+    assert generated =~
+             "import #{AshGleam.Info.gleam_module_prefix(output: tmp)}/board.{type Board}"
+
+    assert generated =~ "board: List(Board)"
+    assert board_types =~ "pub type Board {\n  X\n  O\n  Empty\n}"
   end
 
   test "test env codegen defaults write under test/generated/ash_gleam" do

@@ -103,32 +103,57 @@ defmodule AshGleam.Codegen.Renderer do
     |> Enum.uniq_by(& &1.module_name)
   end
 
-  defp field_atom_type_definition(%{name: field_name, type: type, constraints: constraints})
-       when type in [:atom, Ash.Type.Atom] do
-    case Keyword.get(constraints, :one_of) do
-      values when is_list(values) and values != [] ->
-        type_name = Macro.camelize(to_string(field_name))
-        module_name = "#{Macro.underscore(type_name)}"
+  defp field_atom_type_definition(
+         %{name: field_name, type: type, constraints: constraints} = attribute
+       )
+       when type in [:atom, Ash.Type.Atom, {:array, :atom}, {:array, Ash.Type.Atom}] do
+    do_x = fn values ->
+      type_name = Macro.camelize(to_string(field_name))
+      module_name = "#{Macro.underscore(type_name)}"
 
-        variants =
-          values
-          |> Enum.reject(&is_nil/1)
-          |> Enum.map(&atom_variant!/1)
+      variants =
+        values
+        |> Enum.reject(&is_nil/1)
+        |> Enum.map(&atom_variant!/1)
 
-        [
-          %{
-            name: type_name,
-            module_name: module_name,
-            definition: %{name: type_name, variants: variants}
-          }
-        ]
+      [
+        %{
+          name: type_name,
+          module_name: module_name,
+          definition: %{name: type_name, variants: variants}
+        }
+      ]
+    end
 
-      _ ->
+    array_values =
+      try do
+        Keyword.get(constraints, :items)
+        |> Keyword.get(:one_of)
+      rescue
+        _ -> nil
+      end
+
+    values = Keyword.get(constraints, :one_of)
+
+    cond do
+      is_list(array_values) and array_values != [] ->
+        do_x.(array_values)
+
+      is_list(values) and values != [] ->
+        do_x.(values)
+
+      true ->
         []
     end
   end
 
-  defp field_atom_type_definition(_field), do: []
+  defp field_atom_type_definition(_field) do
+    []
+  end
+
+  defp atom_enum_values({:atom_enum, values}), do: values
+  defp atom_enum_values({:array, inner}), do: atom_enum_values(inner)
+  defp atom_enum_values(_), do: nil
 
   defp atom_variant!(value) when is_atom(value), do: value |> Atom.to_string() |> Macro.camelize()
 
