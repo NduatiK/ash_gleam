@@ -145,8 +145,8 @@ pub fn find_todo(id: String): Result(Todo, String) {
 import myapp/generated/src/destroy_todo
 import myapp/generated/src/todo_item.{type Todo}
 
-pub fn remove_todo(todo: Todo): Result(Bool, String) {
-  destroy_todo.DestroyTodo(todo)
+pub fn remove_todo(todo_item: Todo): Result(Bool, String) {
+  destroy_todo.DestroyTodo(todo_item)
   |> destroy_todo.run()
 }
 ```
@@ -273,10 +273,11 @@ Gleam actions can use the generated FFI modules to call Ash actions, enabling pa
 import myapp/generated/src/first_completed_todo
 
 pub fn get_first_completed() -> Todo {
-  let assert Ok(todo) =
+  let assert Ok(todo_item) =
     first_completed_todo.new()
     |> first_completed_todo.run()
-  todo
+
+    todo_item
 }
 ```
 
