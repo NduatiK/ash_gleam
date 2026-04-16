@@ -6,8 +6,11 @@ defmodule AshGleam.GeneratedGleamHelper do
     purge_modules()
 
     :ok = AshGleam.codegen(otp_app: :ash_gleam)
+
     Mix.Task.reenable("compile.gleam")
     Mix.Task.run("compile.gleam")
+    Mix.Task.reenable("compile.erlang")
+    Mix.Task.run("compile.erlang")
 
     Code.prepend_path("_build/test/lib/ash_gleam/ebin")
     Code.compile_file("#{AshGleam.Info.elixir_dir()}/ash_gleam/test_domain/generated.ex")
