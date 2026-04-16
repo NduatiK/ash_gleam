@@ -11,7 +11,8 @@ defmodule Example.MixProject do
       aliases: aliases(),
       deps: deps(),
       compilers: [:phoenix_live_view] ++ Mix.compilers(),
-      listeners: [Phoenix.CodeReloader]
+      listeners: [Phoenix.CodeReloader],
+      consolidate_protocols: Mix.env() != :dev
     ]
   end
 
@@ -40,6 +41,9 @@ defmodule Example.MixProject do
   # Type `mix help deps` for examples and options.
   defp deps do
     [
+      {:sourceror, "~> 1.8", only: [:dev, :test]},
+      {:ash, "~> 3.0"},
+      {:igniter, "~> 0.6", only: [:dev, :test]},
       {:phoenix, "~> 1.8.4"},
       {:phoenix_html, "~> 4.1"},
       {:phoenix_live_reload, "~> 1.2", only: :dev},

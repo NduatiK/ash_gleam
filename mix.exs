@@ -17,46 +17,21 @@ defmodule AshGleam.MixProject do
       app: @app,
       version: @version,
       elixir: "~> 1.15",
+      elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
+      aliases: aliases(),
+      deps: deps(),
       archives: [mix_gleam: "~> 0.6.2"],
       compilers: [:gleam | Mix.compilers()],
-      elixirc_paths: elixirc_paths(Mix.env()),
       erlc_paths: erlc_paths(Mix.env()),
       erlc_include_path: "_build/#{Mix.env()}/lib/#{@app}/include",
       prune_code_paths: false,
-      package: package(),
-      deps: deps(),
-      aliases: aliases(),
-      docs: &docs/0,
-      description: @description,
-      source_url: "https://github.com/NduatiK/ash_gleam",
-      homepage_url: "https://github.com/NduatiK/ash_gleam",
-      dialyzer: [
-        plt_add_apps: [:mix]
-      ],
       consolidate_protocols: Mix.env() != :test,
       usage_rules: usage_rules()
     ]
   end
 
-  def cli do
-    [
-      preferred_envs: [
-        "test.codegen": :test,
-        "test.test_valibot": :test,
-        tidewave: :test
-      ]
-    ]
-  end
 
-  def ash_version(default_version) do
-    case System.get_env("ASH_VERSION") do
-      nil -> default_version
-      "local" -> [path: "../ash", override: true]
-      "main" -> [git: "https://github.com/ash-project/ash.git"]
-      version -> "~> #{version}"
-    end
-  end
 
   defp elixirc_paths(:test), do: ["lib", "test/support"]
   defp elixirc_paths(_), do: ["lib"]
@@ -87,103 +62,6 @@ defmodule AshGleam.MixProject do
     ]
   end
 
-  defp package do
-    [
-      maintainers: [
-        "Torkild Kjevik <torkild.kjevik@boitano.no>"
-      ],
-      licenses: ["MIT"],
-      files: ~w(lib .formatter.exs mix.exs README*
-        CHANGELOG* documentation usage-rules.md LICENSES priv),
-      links: %{
-        "GitHub" => "https://github.com/NduatiK/ash_gleam",
-        "Changelog" => "https://github.com/NduatiK/ash_gleam/blob/main/CHANGELOG.md"
-      }
-    ]
-  end
-
-  defp docs do
-    [
-      main: "readme",
-      source_ref: "v#{@version}",
-      logo: "logos/small-logo.png",
-      extra_section: "GUIDES",
-      extras: [
-        # Home
-        {"README.md", title: "Home"},
-
-        # Getting Started
-        "documentation/getting-started/installation.md",
-        "documentation/getting-started/first-rpc-action.md",
-        "documentation/getting-started/frontend-frameworks.md",
-
-        # Guides
-        "documentation/guides/crud-operations.md",
-        "documentation/guides/field-selection.md",
-        "documentation/guides/querying-data.md",
-        "documentation/guides/typed-queries.md",
-        "documentation/guides/error-handling.md",
-        "documentation/guides/form-validation.md",
-        "documentation/guides/typed-controllers.md",
-
-        # Features
-        "documentation/features/rpc-action-options.md",
-        "documentation/features/phoenix-channels.md",
-        "documentation/features/typed-channels.md",
-        "documentation/features/lifecycle-hooks.md",
-        "documentation/features/multitenancy.md",
-        "documentation/features/action-metadata.md",
-        "documentation/features/developer-experience.md",
-
-        # Advanced
-        "documentation/advanced/union-types.md",
-        "documentation/advanced/embedded-resources.md",
-        "documentation/advanced/custom-fetch.md",
-        "documentation/advanced/custom-types.md",
-        "documentation/advanced/field-name-mapping.md",
-
-        # Reference
-        "documentation/reference/configuration.md",
-        "documentation/reference/mix-tasks.md",
-        "documentation/reference/troubleshooting.md",
-
-        # DSLs
-        {"documentation/dsls/DSL-AshGleam.Rpc.md",
-         search_data: Spark.Docs.search_data_for(AshGleam.Rpc)},
-        {"documentation/dsls/DSL-AshGleam.Resource.md",
-         search_data: Spark.Docs.search_data_for(AshGleam.Resource)},
-
-        # About
-        "CHANGELOG.md"
-      ],
-      groups_for_extras: [
-        "Getting Started": ~r'documentation/getting-started',
-        Guides: ~r'documentation/guides',
-        Features: ~r'documentation/features',
-        Advanced: ~r'documentation/advanced',
-        Reference: ~r'documentation/reference',
-        DSLs: ~r'documentation/dsls',
-        "About AshGleam": [
-          "CHANGELOG.md"
-        ]
-      ],
-      before_closing_head_tag: fn type ->
-        if type == :html do
-          """
-          <script>
-            if (location.hostname === "hexdocs.pm") {
-              var script = document.createElement("script");
-              script.src = "https://plausible.io/js/script.js";
-              script.setAttribute("defer", "defer")
-              script.setAttribute("data-domain", "ashhexdocs")
-              document.head.appendChild(script);
-            }
-          </script>
-          """
-        end
-      end
-    ]
-  end
 
   # Run "mix help deps" to learn about dependencies.
   defp deps do
@@ -214,8 +92,6 @@ defmodule AshGleam.MixProject do
       "test.compile_generated": "cmd cd test/ts && npm run compileGenerated",
       "test.compile_should_pass": "cmd cd test/ts && npm run compileShouldPass",
       "test.compile_should_fail": "cmd cd test/ts && npm run compileShouldFail",
-      "test.test_zod": "cmd cd test/ts && npm run testZod",
-      "test.test_valibot": "cmd cd test/ts && npm run testValibot",
       sobelow: "sobelow --skip",
       docs: [
         "spark.cheat_sheets",
@@ -231,21 +107,10 @@ defmodule AshGleam.MixProject do
   end
 
   defp usage_rules do
-    # Example for those using claude.
     [
       file: "AGENTS.md",
-      # rules to include directly in CLAUDE.md
-      # :usage_rules itself provides rules for search_docs, docs, etc.
-      # use a regex to match multiple deps, or atoms/strings for specific ones
       usage_rules: [:usage_rules, :ash, ~r/^ash_/],
-      # If your CLAUDE.md is getting too big, link instead of inlining:
       usage_rules: [:ash, {~r/^ash_/, link: :markdown}]
-      # or use skills
-      # skills: [
-      #   location: ".codex/skills",
-      #   # build skills that combine multiple usage rules
-      #   build: build
-      # ]
     ]
   end
 end
