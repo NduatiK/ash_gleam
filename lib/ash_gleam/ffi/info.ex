@@ -9,4 +9,7 @@ defmodule AshGleam.FFI.Info do
   def resources(domain) do
     Spark.Dsl.Extension.get_entities(domain, [:gleam, :ffi])
   end
+
+  @spec spec(module(), map()) :: AshGleam.Spec.Domain.t()
+  def spec(domain, resources), do: AshGleam.Spec.Domain.build(domain, resources)
 end

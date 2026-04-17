@@ -17,7 +17,9 @@ defmodule AshGleam.GleamActionRunner do
 
         AshGleam.Marshal.input!(argument.type, value,
           allow_nil?: argument.allow_nil?,
-          constraints: argument.constraints
+          constraints: argument.constraints,
+          resource: input.resource,
+          action: input.action.name
         )
       end)
 
@@ -37,26 +39,28 @@ defmodule AshGleam.GleamActionRunner do
         action: input.action.name
       )
 
-    decode_result(result, config)
+    decode_result(result, config, input)
   end
 
-  defp decode_result({:ok, value}, config) do
-    decode_plain_result(value, config)
+  defp decode_result({:ok, value}, config, input) do
+    decode_plain_result(value, config, input)
   end
 
-  defp decode_result({:error, error}, _config) do
+  defp decode_result({:error, error}, _config, _input) do
     {:error, UnknownError.exception(error: format_error(error))}
   end
 
-  defp decode_result(value, config) do
-    decode_plain_result(value, config)
+  defp decode_result(value, config, input) do
+    decode_plain_result(value, config, input)
   end
 
-  defp decode_plain_result(value, config) do
+  defp decode_plain_result(value, config, input) do
     {:ok,
      AshGleam.Marshal.output!(config.return_type, value,
        allow_nil?: config.allow_nil?,
-       constraints: config.constraints
+       constraints: config.constraints,
+       resource: input.resource,
+       action: input.action.name
      )}
   end
 

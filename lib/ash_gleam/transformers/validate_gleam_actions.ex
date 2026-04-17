@@ -47,26 +47,20 @@ defmodule AshGleam.Transformers.ValidateGleamActions do
     end
   end
 
-  defp unsupported_type_message(type, _constraints, "return type")
-       when type in [:atom, Ash.Type.Atom] do
-    "Unsupported return type #{inspect(type)} in gleam.actions. Atom return types require constraints like `constraints one_of: [:x, :o, :empty]`."
-  end
-
-  defp unsupported_type_message(type, _constraints, label)
-       when type in [:atom, Ash.Type.Atom] do
-    "Unsupported #{label} #{inspect(type)} in gleam.actions. Atom argument types require constraints like `constraints one_of: [:x, :o, :empty]`."
-  end
-
-  defp unsupported_type_message(type, constraints, label) when is_atom(type) do
-    if Code.ensure_loaded?(type) and function_exported?(type, :variants, 0) do
-      "Unsupported #{label} #{inspect(type)} in gleam.actions. Reusable types must be `AshSumType` modules, and their payload types must also be AshGleam-supported. Constraints: #{inspect(constraints)}"
-    else
-      "Unsupported #{label} #{inspect(type)} with constraints #{inspect(constraints)} in gleam.actions"
-    end
-  end
-
   defp unsupported_type_message(type, constraints, label) do
-    "Unsupported #{label} #{inspect(type)} with constraints #{inspect(constraints)} in gleam.actions"
+    cond do
+      AshGleam.TypeMapper.raw_atom_type?(type) and label == "return type" ->
+        "Unsupported return type #{inspect(type)} in gleam.actions. Atom return types require constraints like `constraints one_of: [:x, :o, :empty]`."
+
+      AshGleam.TypeMapper.raw_atom_type?(type) ->
+        "Unsupported #{label} #{inspect(type)} in gleam.actions. Atom argument types require constraints like `constraints one_of: [:x, :o, :empty]`."
+
+      is_atom(type) and Code.ensure_loaded?(type) and function_exported?(type, :variants, 0) ->
+        "Unsupported #{label} #{inspect(type)} in gleam.actions. Reusable types must be `AshSumType` modules, and their payload types must also be AshGleam-supported. Constraints: #{inspect(constraints)}"
+
+      true ->
+        "Unsupported #{label} #{inspect(type)} with constraints #{inspect(constraints)} in gleam.actions"
+    end
   end
 
   defp validate_run(action) when is_function(action.run) do

@@ -14,32 +14,31 @@ defmodule AshGleam.Interop do
     apply(module, function, args)
   rescue
     error ->
-      IO.inspect(error)
-
-      raise ActionInterop,
-        message: "Gleam interop call failed (#{inspect(error)})",
+      ActionInterop.raise!("Gleam interop call failed",
         resource: opts[:resource],
         action: opts[:action],
         details: %{
-          phase: :call,
+          phase: :interop_call,
           module: module,
           function: function,
           arity: length(args),
-          error: Exception.message(error)
+          error: Exception.message(error),
+          exception: inspect(error)
         }
+      )
   catch
     kind, reason ->
-      raise ActionInterop,
-        message: "Gleam interop call failed",
+      ActionInterop.raise!("Gleam interop call failed",
         resource: opts[:resource],
         action: opts[:action],
         details: %{
-          phase: :call,
+          phase: :interop_call,
           module: module,
           function: function,
           arity: length(args),
           kind: kind,
           reason: reason
         }
+      )
   end
 end

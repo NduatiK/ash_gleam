@@ -86,17 +86,21 @@ defmodule AshGleam.Transformers.GenerateManualActions do
 
   defp unsupported_type_message(type, constraints, kind)
 
-  defp unsupported_type_message(type, _constraints, :return)
-       when type in [:atom, Ash.Type.Atom] do
-    "unsupported return type #{inspect(type)}; atom return types require constraints like `constraints one_of: [:x, :o, :empty]`"
+  defp unsupported_type_message(type, constraints, kind) do
+    if AshGleam.TypeMapper.raw_atom_type?(type) do
+      case kind do
+        :return ->
+          "unsupported return type #{inspect(type)}; atom return types require constraints like `constraints one_of: [:x, :o, :empty]`"
+
+        :argument ->
+          "unsupported argument type #{inspect(type)}; atom argument types require constraints like `constraints one_of: [:x, :o, :empty]`"
+      end
+    else
+      unsupported_non_atom_type_message(type, constraints, kind)
+    end
   end
 
-  defp unsupported_type_message(type, _constraints, :argument)
-       when type in [:atom, Ash.Type.Atom] do
-    "unsupported argument type #{inspect(type)}; atom argument types require constraints like `constraints one_of: [:x, :o, :empty]`"
-  end
-
-  defp unsupported_type_message(type, constraints, kind) when is_atom(type) do
+  defp unsupported_non_atom_type_message(type, constraints, kind) when is_atom(type) do
     label =
       case kind do
         :return -> "return type"
@@ -110,7 +114,7 @@ defmodule AshGleam.Transformers.GenerateManualActions do
     end
   end
 
-  defp unsupported_type_message(type, constraints, kind) do
+  defp unsupported_non_atom_type_message(type, constraints, kind) do
     label =
       case kind do
         :return -> "return type"

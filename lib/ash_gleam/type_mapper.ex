@@ -29,6 +29,28 @@ defmodule AshGleam.TypeMapper do
     end
   end
 
+  @spec raw_atom_type?(term()) :: boolean()
+  def raw_atom_type?(type), do: type in [:atom, Ash.Type.Atom]
+
+  @spec constrained_atom_values(term(), Keyword.t()) :: {:ok, [atom()]} | :error
+  def constrained_atom_values(type, constraints \\ []) do
+    case normalize(type, constraints) do
+      {:ok, {:constrained_atom, values}} ->
+        {:ok, values}
+
+      {:ok, {:array, inner}} ->
+        item_constraints =
+          constraints
+          |> Keyword.get(:items, [])
+          |> List.wrap()
+
+        constrained_atom_values(inner, item_constraints)
+
+      _ ->
+        :error
+    end
+  end
+
   @spec normalize(term(), Keyword.t()) :: {:ok, term()} | :error
 
   # Pass-through for already-normalized forms produced by recursive normalize calls.

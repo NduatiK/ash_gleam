@@ -192,8 +192,9 @@ defmodule AshGleam.Codegen.Renderer do
     |> Enum.uniq_by(& &1.module_name)
   end
 
-  defp field_atom_type_definition(%{name: field_name, type: type, constraints: constraints})
-       when type in [:atom, Ash.Type.Atom, {:array, :atom}, {:array, Ash.Type.Atom}] do
+  defp field_atom_type_definition(%{name: field_name, type: type} = field) do
+    constraints = Map.get(field, :constraints, [])
+
     do_x = fn values ->
       type_name = Macro.camelize(to_string(field_name))
       module_name = "#{Macro.underscore(type_name)}"
@@ -212,47 +213,30 @@ defmodule AshGleam.Codegen.Renderer do
       ]
     end
 
-    array_values =
-      try do
-        Keyword.get(constraints, :items)
-        |> Keyword.get(:one_of)
-      rescue
-        _ -> nil
-      end
-
-    values = Keyword.get(constraints, :one_of)
-
-    cond do
-      is_list(array_values) and array_values != [] ->
-        do_x.(array_values)
-
-      is_list(values) and values != [] ->
-        do_x.(values)
-
-      true ->
-        []
+    case AshGleam.TypeMapper.constrained_atom_values(type, constraints) do
+      {:ok, values} -> do_x.(values)
+      :error -> []
     end
   end
-
-  defp field_atom_type_definition(_field) do
-    []
-  end
-
-  defp field_inline_atom_type_definition(%{type: type})
-       when type not in [:atom, Ash.Type.Atom, {:array, :atom}, {:array, Ash.Type.Atom}],
-       do: []
 
   defp field_inline_atom_type_definition(%{type: type, constraints: constraints} = field) do
-    case AshGleam.TypeMapper.reusable_type_module(type, constraints) do
-      {:ok, _module} -> []
-      :error -> field_atom_type_definition(field)
+    with {:ok, _values} <- AshGleam.TypeMapper.constrained_atom_values(type, constraints),
+         :error <- AshGleam.TypeMapper.reusable_type_module(type, constraints) do
+      field_atom_type_definition(field)
+    else
+      _ -> []
     end
+  end
+
+  defp field_inline_atom_type_definition(field) do
+    field_atom_type_definition(field)
   end
 
   defp atom_variant!(value) when is_atom(value), do: value |> Atom.to_string() |> Macro.camelize()
 
   # Returns the resource module(s) referenced by a field's type.
-  defp field_resource_modules(%{type: type, constraints: constraints}) do
+  defp field_resource_modules(%{type: type} = field) do
+    constraints = Map.get(field, :constraints, [])
     direct_resource_modules(type, constraints)
   end
 
@@ -341,10 +325,7 @@ defmodule AshGleam.Codegen.Renderer do
 
     case ffi.kind do
       :create ->
-        create_fields =
-          Enum.filter(resource.fields, fn field ->
-            not field.primary_key? and field.writable? and not field.generated?
-          end)
+        create_fields = AshGleam.Spec.Resource.create_fields(resource)
 
         extra_imports = resource_imports(create_fields, prefix, resource.module)
         atom_imports = atom_type_imports(resource, create_fields, prefix)
@@ -671,21 +652,6 @@ defmodule AshGleam.Codegen.Renderer do
     |> Enum.map(&Macro.underscore/1)
     |> Path.join()
     |> Kernel.<>("/generated.ex")
-  end
-
-  defp gleam_type!(%{name: field_name, type: type, constraints: constraints}, allow_nil?)
-       when type in [:atom, Ash.Type.Atom] do
-    type_name =
-      case Keyword.get(constraints, :one_of) do
-        values when is_list(values) and values != [] -> Macro.camelize(to_string(field_name))
-        _ -> raise ArgumentError, "atom fields require a one_of constraint"
-      end
-
-    if allow_nil? do
-      "Option(#{type_name})"
-    else
-      type_name
-    end
   end
 
   defp gleam_type!(%{name: field_name, type: type, constraints: constraints}, allow_nil?) do

@@ -157,6 +157,33 @@ defmodule AshGleam.RuntimeTest do
     assert AshGleam.Marshal.output!(:integer, 7, allow_nil?: false) == 7
   end
 
+  test "type mapper centralizes constrained atom detection for scalar and array forms" do
+    assert AshGleam.TypeMapper.raw_atom_type?(:atom)
+    assert AshGleam.TypeMapper.raw_atom_type?(Ash.Type.Atom)
+    refute AshGleam.TypeMapper.raw_atom_type?(:string)
+
+    assert {:ok, [:x, :o]} =
+             AshGleam.TypeMapper.constrained_atom_values(:atom, one_of: [:x, :o])
+
+    assert {:ok, [:x, :o]} =
+             AshGleam.TypeMapper.constrained_atom_values({:array, :atom},
+               items: [one_of: [:x, :o]]
+             )
+
+    assert :error = AshGleam.TypeMapper.constrained_atom_values(:string, [])
+  end
+
+  test "bridge decoding keeps constraints and peels context into opts" do
+    arguments = [
+      %{name: :mark, type: :atom, allow_nil?: false, constraints: [one_of: [:x, :o]]}
+    ]
+
+    builder = {:builder, :x, {:some, AshGleam.Context.new(%{actor: %{id: "user-1"}})}}
+
+    assert {%{mark: :x}, actor: %{id: "user-1"}} =
+             AshGleam.Generated.Bridge.decode_action(builder, arguments)
+  end
+
   test "marshal handles scalar, nullable, array, resource, and atom enum values" do
     todo = %AshGleam.TestTodo{id: "todo-1", title: "Write docs", completed: false}
     atom_constraints = [one_of: [:x, :o]]

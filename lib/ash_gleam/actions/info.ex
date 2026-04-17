@@ -16,4 +16,9 @@ defmodule AshGleam.Actions.Info do
       _ -> []
     end)
   end
+
+  @spec action_specs(module()) :: [AshGleam.Spec.Action.t()]
+  def action_specs(resource) do
+    Enum.map(actions(resource), &AshGleam.Spec.Action.build(resource, &1))
+  end
 end

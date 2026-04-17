@@ -16,9 +16,11 @@ defmodule AshGleam.Marshal do
     end
   rescue
     error ->
-      raise ActionInterop,
-        message: "Failed to marshal input",
-        details: %{phase: :marshal_input, type: type, error: Exception.message(error)}
+      ActionInterop.raise!("Failed to marshal input",
+        resource: Keyword.get(opts, :resource),
+        action: Keyword.get(opts, :action),
+        details: %{phase: :encode_input, type: type, error: Exception.message(error)}
+      )
   end
 
   @spec output!(term(), term(), Keyword.t()) :: term()
@@ -37,197 +39,34 @@ defmodule AshGleam.Marshal do
     end
   rescue
     error ->
-      raise ActionInterop,
-        message: "Failed to marshal output",
-        details: %{phase: :marshal_output, type: type, error: Exception.message(error)}
+      ActionInterop.raise!("Failed to marshal output",
+        resource: Keyword.get(opts, :resource),
+        action: Keyword.get(opts, :action),
+        details: %{phase: :decode_output, type: type, error: Exception.message(error)}
+      )
   end
 
   @spec to_gleam(module(), struct() | map()) :: tuple()
-  def to_gleam(resource, value) do
-    constructor =
-      resource
-      |> AshGleam.Resource.Info.gleam_type_name!()
-      |> Macro.underscore()
-      |> String.to_atom()
-
-    fields =
-      resource
-      |> AshGleam.Resource.Info.fields()
-      |> Enum.map(fn field ->
-        field_value = Map.get(value, field.name)
-
-        input!(field.type, field_value,
-          allow_nil?: field.allow_nil?,
-          constraints: field.constraints
-        )
-      end)
-
-    List.to_tuple([constructor | fields])
-  end
+  def to_gleam(resource, value), do: AshGleam.Codec.Resource.to_gleam(resource, value)
 
   @spec from_gleam(module(), tuple() | struct() | map()) :: map()
   def from_gleam(resource, value)
 
-  def from_gleam(resource, %resource{} = value), do: value
-
-  def from_gleam(resource, value) when is_map(value) do
-    build_resource_map(resource, value)
-  end
-
-  def from_gleam(resource, value) when is_tuple(value) do
-    [_constructor | raw_values] = Tuple.to_list(value)
-
-    resource
-    |> AshGleam.Resource.Info.fields()
-    |> Enum.zip(raw_values)
-    |> Enum.reduce(%{}, fn {field, raw}, acc ->
-      Map.put(
-        acc,
-        field.name,
-        output!(field.type, raw,
-          allow_nil?: field.allow_nil?,
-          constraints: field.constraints
-        )
-      )
-    end)
-    |> build_resource_map(resource)
-  end
+  def from_gleam(resource, value), do: AshGleam.Codec.Resource.from_gleam(resource, value)
 
   defp marshal(type, value, opts, direction)
 
-  defp marshal({:array, inner}, value, opts, direction) when is_list(value) do
-    constraints = Keyword.get(opts, :constraints, [])
-    item_constraints = Keyword.get(constraints, :items, [])
-    nil_items? = Keyword.get(constraints, :nil_items?, false)
+  defp marshal({:array, _inner} = type, value, opts, :to_gleam) when is_list(value),
+    do: AshGleam.Codec.Value.encode(type, value, opts)
 
-    Enum.map(value, fn item ->
-      if nil_items? do
-        case direction do
-          :to_gleam ->
-            if is_nil(item),
-              do: :none,
-              else: {:some, marshal(inner, item, [constraints: item_constraints], direction)}
-
-          :from_gleam ->
-            case item do
-              :none -> nil
-              {:some, v} -> marshal(inner, v, [constraints: item_constraints], direction)
-              v -> marshal(inner, v, [constraints: item_constraints], direction)
-            end
-        end
-      else
-        marshal(inner, item, [constraints: item_constraints], direction)
-      end
-    end)
-  end
+  defp marshal({:array, _inner} = type, value, opts, :from_gleam) when is_list(value),
+    do: AshGleam.Codec.Value.decode(type, value, opts)
 
   defp marshal(type, value, opts, :to_gleam) when is_atom(type) do
-    constraints = Keyword.get(opts, :constraints, [])
-
-    case AshGleam.TypeMapper.normalize(type, constraints) do
-      {:ok, {:scalar, _}} -> value
-      {:ok, {:constrained_atom, _}} -> value
-      {:ok, {:reusable_union, _, variants}} -> union_to_gleam(value, variants)
-      {:ok, {:resource, resource}} -> to_gleam(resource, value)
-      :error -> raise ArgumentError, "unsupported type #{inspect(type)}"
-    end
+    AshGleam.Codec.Value.encode(type, value, opts)
   end
 
   defp marshal(type, value, opts, :from_gleam) when is_atom(type) do
-    constraints = Keyword.get(opts, :constraints, [])
-
-    case AshGleam.TypeMapper.normalize(type, constraints) do
-      {:ok, {:scalar, _}} -> value
-      {:ok, {:constrained_atom, _}} -> value
-      {:ok, {:reusable_union, _, variants}} -> union_from_gleam(value, variants)
-      {:ok, {:resource, resource}} -> from_gleam(resource, value)
-      :error -> raise ArgumentError, "unsupported type #{inspect(type)}"
-    end
-  end
-
-  defp union_to_gleam(value, variants) when is_atom(value) do
-    variant = fetch_union_variant!(variants, value)
-
-    case variant.fields do
-      [] -> value
-      _ -> raise ArgumentError, "expected tuple payload for variant #{inspect(value)}"
-    end
-  end
-
-  defp union_to_gleam(value, variants) when is_tuple(value) do
-    [type | payload] = Tuple.to_list(value)
-    variant = fetch_union_variant!(variants, type)
-    encoded = encode_union_payload(payload, variant.fields)
-
-    List.to_tuple([type | encoded])
-  end
-
-  defp union_to_gleam(value, _variants) do
-    raise ArgumentError,
-          "expected atom or tagged tuple for reusable union value, got: #{inspect(value)}"
-  end
-
-  defp union_from_gleam(value, variants) when is_atom(value) do
-    variant = fetch_union_variant!(variants, value)
-
-    case variant.fields do
-      [] -> value
-      _ -> raise ArgumentError, "expected tuple payload for variant #{inspect(value)}"
-    end
-  end
-
-  defp union_from_gleam(value, variants) when is_tuple(value) do
-    [type | payload] = Tuple.to_list(value)
-    variant = fetch_union_variant!(variants, type)
-    decoded = decode_union_payload(payload, variant.fields)
-
-    List.to_tuple([type | decoded])
-  end
-
-  defp union_from_gleam(value, _variants) do
-    raise ArgumentError,
-          "expected atom or tagged tuple for reusable union value, got: #{inspect(value)}"
-  end
-
-  defp encode_union_payload(values, fields) when length(values) == length(fields) do
-    Enum.zip_with(values, fields, fn value, field ->
-      input!(field.type, value,
-        allow_nil?: field.allow_nil?,
-        constraints: field.constraints
-      )
-    end)
-  end
-
-  defp encode_union_payload(values, fields) do
-    raise ArgumentError,
-          "expected #{length(fields)} payload value(s), got #{length(values)}: #{inspect(values)}"
-  end
-
-  defp decode_union_payload(values, fields) when length(values) == length(fields) do
-    Enum.zip_with(values, fields, fn value, field ->
-      output!(field.type, value,
-        allow_nil?: field.allow_nil?,
-        constraints: field.constraints
-      )
-    end)
-  end
-
-  defp decode_union_payload(values, fields) do
-    raise ArgumentError,
-          "expected #{length(fields)} payload value(s), got #{length(values)}: #{inspect(values)}"
-  end
-
-  defp fetch_union_variant!(variants, type) do
-    Enum.find(variants, &(&1.name == type)) ||
-      raise ArgumentError, "unknown union variant #{inspect(type)}"
-  end
-
-  defp build_resource_map(resource, values) when is_atom(resource),
-    do: build_resource_map(values, resource)
-
-  defp build_resource_map(values, resource) do
-    struct(resource, values)
-  rescue
-    _ -> values
+    AshGleam.Codec.Value.decode(type, value, opts)
   end
 end
