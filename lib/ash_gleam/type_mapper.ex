@@ -21,7 +21,7 @@ defmodule AshGleam.TypeMapper do
   def supported?(type, constraints \\ []) do
     case normalize(type, constraints) do
       {:ok, {:scalar, _}} -> true
-      {:ok, {:atom_enum, _}} -> true
+      {:ok, {:constrained_atom, _}} -> true
       {:ok, {:reusable_union, _, variants}} -> Enum.all?(variants, &supported_union_variant?/1)
       {:ok, {:array, inner}} -> supported?(inner)
       {:ok, {:resource, module}} -> ash_gleam_resource?(module)
@@ -33,7 +33,7 @@ defmodule AshGleam.TypeMapper do
 
   # Pass-through for already-normalized forms produced by recursive normalize calls.
   def normalize({:scalar, _} = normalized, _constraints), do: {:ok, normalized}
-  def normalize({:atom_enum, _} = normalized, _constraints), do: {:ok, normalized}
+  def normalize({:constrained_atom, _} = normalized, _constraints), do: {:ok, normalized}
   def normalize({:reusable_union, _, _} = normalized, _constraints), do: {:ok, normalized}
   def normalize({:resource, _} = normalized, _constraints), do: {:ok, normalized}
 
@@ -53,7 +53,7 @@ defmodule AshGleam.TypeMapper do
   def normalize(atom, constraints) when atom in [:atom, Ash.Type.Atom] do
     case Keyword.take(constraints, @type_constraints) do
       [one_of: values] when is_list(values) and values != [] ->
-        {:ok, {:atom_enum, values}}
+        {:ok, {:constrained_atom, values}}
 
       _ ->
         :error
@@ -93,7 +93,7 @@ defmodule AshGleam.TypeMapper do
       {:ok, {:scalar, scalar}} ->
         {:ok, {scalar, []}}
 
-      {:ok, {:atom_enum, values}} ->
+      {:ok, {:constrained_atom, values}} ->
         {:ok, {:atom, one_of: values}}
 
       {:ok, {:reusable_union, module, _variants}} ->
@@ -159,8 +159,8 @@ defmodule AshGleam.TypeMapper do
       {:ok, {:scalar, :term}} ->
         {:ok, "String"}
 
-      {:ok, {:atom_enum, values}} ->
-        {:ok, gleam_atom_enum_type_name(name, values)}
+      {:ok, {:constrained_atom, values}} ->
+        {:ok, gleam_constrained_atom_type_name(name, values)}
 
       {:ok, {:reusable_union, module, _variants}} ->
         {:ok, AshGleam.ReusableType.type_name(module)}
@@ -201,8 +201,8 @@ defmodule AshGleam.TypeMapper do
       {:ok, {:reusable_union, _, variants}} -> Enum.all?(variants, &supported_union_variant?/1)
       {:ok, {:array, inner}} -> supported_union_payload?(inner, [])
       {:ok, {:resource, _}} -> true
-      {:ok, {:atom_enum, []}} -> false
-      {:ok, {:atom_enum, _}} -> true
+      {:ok, {:constrained_atom, []}} -> false
+      {:ok, {:constrained_atom, _}} -> true
       :error -> false
     end
   end
@@ -210,7 +210,7 @@ defmodule AshGleam.TypeMapper do
   defp normalize_atom_type(type, constraints) do
     case Keyword.take(constraints, @type_constraints) do
       [one_of: values] when is_list(values) and values != [] ->
-        {:ok, {:atom_enum, values}}
+        {:ok, {:constrained_atom, values}}
 
       _ ->
         if ash_gleam_resource?(type) do
@@ -221,13 +221,13 @@ defmodule AshGleam.TypeMapper do
     end
   end
 
-  defp gleam_atom_enum_type_name(name, _values) when is_atom(name) do
+  defp gleam_constrained_atom_type_name(name, _values) when is_atom(name) do
     name
     |> Atom.to_string()
     |> Macro.camelize()
   end
 
-  defp gleam_atom_enum_type_name(nil, values) do
+  defp gleam_constrained_atom_type_name(nil, values) do
     values
     |> Enum.reject(&is_nil/1)
     |> Enum.map(&(&1 |> Atom.to_string() |> Macro.camelize()))

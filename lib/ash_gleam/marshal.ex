@@ -126,7 +126,7 @@ defmodule AshGleam.Marshal do
 
     case AshGleam.TypeMapper.normalize(type, constraints) do
       {:ok, {:scalar, _}} -> value
-      {:ok, {:atom_enum, _}} -> value
+      {:ok, {:constrained_atom, _}} -> value
       {:ok, {:reusable_union, _, variants}} -> union_to_gleam(value, variants)
       {:ok, {:resource, resource}} -> to_gleam(resource, value)
       :error -> raise ArgumentError, "unsupported type #{inspect(type)}"
@@ -138,7 +138,7 @@ defmodule AshGleam.Marshal do
 
     case AshGleam.TypeMapper.normalize(type, constraints) do
       {:ok, {:scalar, _}} -> value
-      {:ok, {:atom_enum, _}} -> value
+      {:ok, {:constrained_atom, _}} -> value
       {:ok, {:reusable_union, _, variants}} -> union_from_gleam(value, variants)
       {:ok, {:resource, resource}} -> from_gleam(resource, value)
       :error -> raise ArgumentError, "unsupported type #{inspect(type)}"
