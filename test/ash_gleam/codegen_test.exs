@@ -20,8 +20,8 @@ defmodule AshGleam.CodegenTest do
              %{ffi_name: :get_project, kind: :get}
            ] = manifest.domains[domain_key].ffi
 
-    assert Enum.any?(manifest.gleam_actions, &(&1.action_name == :add))
-    assert Enum.any?(manifest.gleam_actions, &(&1.action_name == :mark_completed))
+    assert Enum.any?(manifest.actions, &(&1.action_name == :add))
+    assert Enum.any?(manifest.actions, &(&1.action_name == :mark_completed))
   end
 
   test "codegen writes manifest, gleam modules, and elixir bridge modules" do

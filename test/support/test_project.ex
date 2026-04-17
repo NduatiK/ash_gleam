@@ -13,6 +13,14 @@ defmodule AshGleam.TestProject do
   gleam do
     type_name "Project"
     module_name "project_item"
+
+    actions do
+      action :complete_all_tasks, __MODULE__ do
+        argument :project, __MODULE__, allow_nil?: false
+
+        run &:test_gleam.complete_all_tasks/1
+      end
+    end
   end
 
   attributes do
@@ -41,14 +49,6 @@ defmodule AshGleam.TestProject do
 
     read :get do
       get_by [:id]
-    end
-  end
-
-  gleam_actions do
-    action :complete_all_tasks, __MODULE__ do
-      argument :project, __MODULE__, allow_nil?: false
-
-      run &:test_gleam.complete_all_tasks/1
     end
   end
 end

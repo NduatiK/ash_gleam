@@ -10,11 +10,6 @@ defmodule AshGleam.TestTodo do
     table :ash_gleam_test_todos
   end
 
-  gleam do
-    type_name "Todo"
-    module_name "todo_item"
-  end
-
   attributes do
     uuid_primary_key :id
     attribute :title, :string, allow_nil?: false, public?: true
@@ -47,47 +42,52 @@ defmodule AshGleam.TestTodo do
     end
   end
 
-  gleam_actions do
-    action :add, :integer do
-      argument :a, :integer, allow_nil?: false
-      argument :b, :integer, allow_nil?: false
+  gleam do
+    type_name "Todo"
+    module_name "todo_item"
 
-      run &:test_gleam.add/2
-    end
+    actions do
+      action :add, :integer do
+        argument :a, :integer, allow_nil?: false
+        argument :b, :integer, allow_nil?: false
 
-    action :safe_add, :integer do
-      argument :a, :integer, allow_nil?: false
-      argument :b, :integer, allow_nil?: false
+        run &:test_gleam.add/2
+      end
 
-      run &:test_gleam.safe_add/2
-    end
+      action :safe_add, :integer do
+        argument :a, :integer, allow_nil?: false
+        argument :b, :integer, allow_nil?: false
 
-    action :mark_completed, __MODULE__ do
-      argument :todo, __MODULE__, allow_nil?: false
+        run &:test_gleam.safe_add/2
+      end
 
-      run &:test_gleam.mark_completed/1
-    end
+      action :mark_completed, __MODULE__ do
+        argument :todo, __MODULE__, allow_nil?: false
 
-    action :safe_mark_completed, __MODULE__ do
-      argument :todo, __MODULE__, allow_nil?: false
+        run &:test_gleam.mark_completed/1
+      end
 
-      run &:test_gleam.safe_mark_completed/1
-    end
+      action :safe_mark_completed, __MODULE__ do
+        argument :todo, __MODULE__, allow_nil?: false
 
-    action :first_completed_from_elixir, __MODULE__ do
-      run &:test_gleam.first_completed_from_elixir/0
-    end
+        run &:test_gleam.safe_mark_completed/1
+      end
 
-    action :delete_from_elixir, :boolean do
-      argument :todo, __MODULE__, allow_nil?: false
+      action :first_completed_from_elixir, __MODULE__ do
+        run &:test_gleam.first_completed_from_elixir/0
+      end
 
-      run &:test_gleam.delete_from_elixir/1
-    end
+      action :delete_from_elixir, :boolean do
+        argument :todo, __MODULE__, allow_nil?: false
 
-    action :next_mark, :atom do
-      constraints one_of: [:x, :o, :empty]
+        run &:test_gleam.delete_from_elixir/1
+      end
 
-      run &:test_gleam.next_mark/0
+      action :next_mark, :atom do
+        constraints one_of: [:x, :o, :empty]
+
+        run &:test_gleam.next_mark/0
+      end
     end
   end
 end

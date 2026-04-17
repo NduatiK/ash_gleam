@@ -166,6 +166,16 @@ defmodule AshGleam.RuntimeTest do
              )
   end
 
+  test "marshal handles reusable enum and union modules" do
+    assert AshGleam.Marshal.input!(AshGleam.TestMark, :x, allow_nil?: false) == :x
+    assert AshGleam.Marshal.output!(AshGleam.TestMark, :o, allow_nil?: false) == :o
+
+    assert AshGleam.Marshal.output!(AshGleam.TestWinner, {:player, :x}, allow_nil?: false) ==
+             {:player, :x}
+
+    union = %Ash.Union{type: :missing, value: "not found"}
+  end
+
   test "marshal round-trips atom enum fields on resources" do
     game = %AshGleam.TestGame{
       id: "game-1",
