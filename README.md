@@ -12,9 +12,15 @@ SPDX-License-Identifier: MIT
 
 # AshGleam
 
-Ash gives Elixir you a well-typed interfaced for their resources. 
-AshGleam lets you interact with Gleam for statically typed business logic.
+**Type-safe Gleam interop for Ash resources**
 
+AshGleam integrates Elixir's Ash framework and Gleam into a single, cohesive system. It enables you to move data and execution across the boundary with compile-time guarantees.
+
+You can:
+- [Generate Gleam types from your Ash resources](#generate-gleam-types-from-your-ash-resources)
+- [Expose Gleam functions as Ash actions](#generate-gleam-types-from-your-ash-resources)
+- [Expose Ash actions in Gleam](#expose-ash-actions-to-gleam)
+- [Represent Gleam custom-types in Elixir](#represent-gleam-custom-types-in-elixir)
 
 ## Installation
 
@@ -107,7 +113,7 @@ Create a `src/` directory for your Gleam source files and add the following to y
 
 </details>
 
-## Generate Gleam code from your Ash resources
+## Generate Gleam types from your Ash resources
 
 <details>
   <summary>
@@ -341,7 +347,7 @@ pub fn fetch_incomplete_todo_titles(): Result(List(String), String) {
 
 </details>
 
-## Reusable named sum types
+## Represent Gleam custom-types in Elixir
 
 You can define the equivalent to Gleam's custom types using `AshSumType` from [ash_sum_type](https://github.com/NduatiK/ash_sum_type).
 
