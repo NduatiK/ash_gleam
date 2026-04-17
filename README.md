@@ -466,7 +466,7 @@ defmodule MyApp.Todo do
     attribute :tags, {:array, MyApp.Tag}, allow_nil?: false, default: [], public?: true
 
     
-    # Gleam type List(Tag)
+    # Gleam type List(Option(Tag))
     attribute :nullable_tags, {:array, MyApp.Tag}, allow_nil?: false, default: [], public?: true, nil_items?: true
   end
 end
