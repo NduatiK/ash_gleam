@@ -12,7 +12,7 @@ defmodule AshGleam.Transformers.GenerateManualActions do
     resource = Transformer.get_persisted(dsl_state, :module)
 
     dsl_state
-    |> Spark.Dsl.Transformer.get_entities([:gleam_actions])
+    |> AshGleam.Actions.Info.actions()
     |> Enum.reduce_while({:ok, dsl_state}, fn action, {:ok, dsl_state} ->
       case build_action(action, resource) do
         {:ok, ash_action} ->
@@ -107,14 +107,16 @@ defmodule AshGleam.Transformers.GenerateManualActions do
   end
 
   defp define_resource_interface(dsl_state, action_name) do
+    action_name_bang = String.to_atom(Atom.to_string(action_name) <> "!")
+
     Transformer.eval(
       dsl_state,
-      [action_name: action_name],
+      [action_name: action_name, action_name_bang: action_name_bang],
       quote generated: true do
         if Module.defines?(__MODULE__, {unquote(action_name), 1}, :def) or
              Module.defines?(__MODULE__, {unquote(action_name), 2}, :def) do
           raise ArgumentError,
-                "cannot define #{inspect(unquote(action_name))}/1-2 for gleam_actions because the function already exists on #{inspect(__MODULE__)}"
+                "cannot define #{inspect(unquote(action_name))}/1-2 for gleam.actions because the function already exists on #{inspect(__MODULE__)}"
         end
 
         def unquote(action_name)(params), do: unquote(action_name)(params, [])
@@ -125,6 +127,18 @@ defmodule AshGleam.Transformers.GenerateManualActions do
           __MODULE__
           |> Ash.ActionInput.for_action(unquote(action_name), params, opts)
           |> Ash.run_action(opts)
+        end
+
+        def unquote(action_name_bang)(params),
+          do: unquote(action_name_bang)(params, [])
+
+        def unquote(action_name_bang)(params, opts)
+            when is_map(params) and is_list(opts) do
+          opts = Keyword.put_new(opts, :domain, Ash.Resource.Info.domain(__MODULE__))
+
+          __MODULE__
+          |> Ash.ActionInput.for_action(unquote(action_name), params, opts)
+          |> Ash.run_action!(opts)
         end
       end
     )

@@ -7,9 +7,10 @@ defmodule AshGleam.Actions do
   Resource extension for Gleam-backed Ash actions.
   """
 
-  alias AshGleam.Dsl.{GleamAction, GleamArgument}
+  alias AshGleam.Dsl.{GleamAction, GleamActions, GleamArgument}
   alias AshGleam.Transformers.{GenerateManualActions, ValidateGleamActions}
-  alias Spark.Builder.{Entity, Field, Section}
+  alias Spark.Builder.{Entity, Field}
+  alias Spark.Dsl.Patch.AddEntity
 
   @argument Entity.new(:argument, GleamArgument,
               describe: "A Gleam-backed action argument.",
@@ -39,14 +40,18 @@ defmodule AshGleam.Actions do
           )
           |> Entity.build!()
 
-  @section Section.new(:gleam_actions,
+  @actions Entity.new(:actions, GleamActions,
              describe: "Configure Ash actions backed by compiled Gleam functions.",
-             entities: [@action]
+             # entities: [actions: [@action]]
+             entities: [actions: [@action]]
            )
-           |> Section.build!()
+           |> Entity.build!()
+
+  @gleam_actions_patch %AddEntity{section_path: [:gleam], entity: @actions}
 
   use Spark.Dsl.Extension,
-    sections: [@section],
+    dsl_patches: [@gleam_actions_patch],
+    add_extensions: [AshGleam.Resource],
     verifiers: [ValidateGleamActions],
     transformers: [GenerateManualActions]
 end

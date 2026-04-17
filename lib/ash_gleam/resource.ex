@@ -12,10 +12,10 @@ defmodule AshGleam.Resource do
 
   @gleam_section Section.new(:gleam,
                    describe: "Configure Gleam generation for this resource.",
+                   patchable?: true,
                    schema: [
                      type_name: [
                        type: :string,
-                       required: true,
                        doc: "The generated Gleam type name."
                      ],
                      module_name: [

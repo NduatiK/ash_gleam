@@ -7,6 +7,11 @@ defmodule AshGleam.Dsl.GleamArgument do
   defstruct [:name, :type, :constraints, :allow_nil?, :__identifier__, :__spark_metadata__]
 end
 
+defmodule AshGleam.Dsl.GleamActions do
+  @moduledoc false
+  defstruct [:actions, :__identifier__, :__spark_metadata__]
+end
+
 defmodule AshGleam.Dsl.GleamAction do
   @moduledoc false
   defstruct [

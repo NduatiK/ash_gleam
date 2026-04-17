@@ -48,16 +48,16 @@ defmodule AshGleam.Transformers.ValidateGleamActions do
 
   defp unsupported_type_message(type, _constraints, "return type")
        when type in [:atom, Ash.Type.Atom] do
-    "Unsupported return type #{inspect(type)} in gleam_actions. Atom return types require constraints like `constraints one_of: [:x, :o, :empty]`."
+    "Unsupported return type #{inspect(type)} in gleam.actions. Atom return types require constraints like `constraints one_of: [:x, :o, :empty]`."
   end
 
   defp unsupported_type_message(type, _constraints, label)
        when type in [:atom, Ash.Type.Atom] do
-    "Unsupported #{label} #{inspect(type)} in gleam_actions. Atom argument types require constraints like `constraints one_of: [:x, :o, :empty]`."
+    "Unsupported #{label} #{inspect(type)} in gleam.actions. Atom argument types require constraints like `constraints one_of: [:x, :o, :empty]`."
   end
 
   defp unsupported_type_message(type, constraints, label) do
-    "Unsupported #{label} #{inspect(type)} with constraints #{inspect(constraints)} in gleam_actions"
+    "Unsupported #{label} #{inspect(type)} with constraints #{inspect(constraints)} in gleam.actions"
   end
 
   defp validate_run(action) when is_function(action.run) do

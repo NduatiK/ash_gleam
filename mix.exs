@@ -67,6 +67,7 @@ defmodule AshGleam.MixProject do
   defp deps do
     [
       {:ash, "~> 3.2 and >= 3.21.1"},
+      {:ash_sum_type, "~> 1.0.0"},
       {:gleam_stdlib, "~> 0.62", only: [:test]},
       {:gleeunit, "~> 1.0", only: [:test], runtime: false},
       {:git_ops, "~> 2.0", only: [:dev], runtime: false},

@@ -40,6 +40,8 @@ The generated files live in a configurable output directory (default `lib/ash_gl
 | `:float`, `:decimal` | `Float` |
 | `{:array, t}` | `List(T)` |
 | Any resource with `AshGleam.Resource` | Named record type |
+| `Ash.Type.Enum` module | Generated Gleam union type |
+| `Ash.Type.NewType` wrapping `:union` | Generated Gleam union type with payloads |
 | `allow_nil?: true` on any of the above | `Option(T)` |
 
 Embedded resources (`:embedded` data layer) with the `AshGleam.Resource` extension are fully supported, including as array fields (`{:array, EmbeddedResource}`).
@@ -185,28 +187,91 @@ defmodule MyApp.Todo do
 
   # ...
 
-  gleam_actions do
-    # Takes a Todo, returns a Todo
-    action :mark_completed, __MODULE__ do
-      argument :todo, __MODULE__, allow_nil?: false
-      run &:todo_logic.mark_completed/1
-    end
-
-    # Takes two integers, returns Result(Int, String)
-    action :safe_add, :integer do
-      argument :a, :integer, allow_nil?: false
-      argument :b, :integer, allow_nil?: false
-      run &:todo_logic.safe_add/2
-    end
-
-    # Returns a constrained atom enum
-    action :next_mark, :atom do
-      constraints one_of: [:x, :o, :empty]
-      run &:todo_logic.next_mark/0
+  gleam do
+    actions do
+      # Takes a Todo, returns a Todo
+      action :mark_completed, __MODULE__ do
+        argument :todo, __MODULE__, allow_nil?: false
+        run &:todo_logic.mark_completed/1
+      end
+  
+      # Takes two integers, returns Result(Int, String)
+      action :safe_add, :integer do
+        argument :a, :integer, allow_nil?: false
+        argument :b, :integer, allow_nil?: false
+        run &:todo_logic.safe_add/2
+      end
+  
+      # Returns a reusable enum type
+      action :next_mark, MyApp.Mark do
+        run &:todo_logic.next_mark/0
+      end
     end
   end
 end
 ```
+
+## Reusable named sum types
+
+You can define Gleam-facing sum types once on the Elixir side and reuse them in resource attributes and `gleam.actions`.
+
+### Reusable enums
+
+```elixir
+defmodule MyApp.Mark do
+  use Ash.Type.Enum, values: [:x, :o, :empty]
+end
+
+defmodule MyApp.Board do
+  use Ash.Resource,
+    domain: MyApp.Domain,
+    extensions: [AshGleam.Resource, AshGleam.Actions]
+
+  gleam do
+    type_name "Board"
+    
+    actions do
+      action :next_mark, MyApp.Mark do
+        run &:board_logic.next_mark/0
+      end
+    end
+  end
+
+  attributes do
+    attribute :next_mark, MyApp.Mark, public?: true
+  end
+end
+```
+
+AshGleam will generate one shared Gleam type module for `MyApp.Mark` and reuse it everywhere instead of generating one type per field or action.
+
+### Reusable unions with payloads
+
+Use a named `Ash.Type.NewType` over `:union` when you want constructors that carry values:
+
+```elixir
+defmodule MyApp.LookupOutcome do
+  use Ash.Type.NewType,
+    subtype_of: :union,
+    constraints: [
+      types: [
+        found: [type: Ash.Type.Struct, constraints: [instance_of: MyApp.Todo]],
+        missing: [type: :string]
+      ]
+    ]
+end
+```
+
+That maps to a generated Gleam union like:
+
+```gleam
+pub type LookupOutcome {
+  Found(Todo)
+  Missing(String)
+}
+```
+
+Action `Result(T, String)` behavior is unchanged. If a Gleam action returns `Result`, AshGleam still treats `{:ok, value}` / `{:error, error}` as the action success/error channel. Reusable named union values are regular data and are marshalled according to their declared return type.
 
 ### 3. Call it through Ash
 
