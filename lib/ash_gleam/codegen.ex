@@ -10,6 +10,15 @@ defmodule AshGleam.Codegen do
   @spec run(Keyword.t()) :: :ok
   def run(opts \\ []) do
     manifest = Manifest.build(opts)
-    Writer.write(manifest, Renderer.render(manifest, opts), opts)
+    result = Writer.write(manifest, Renderer.render(manifest, opts), opts)
+
+    try do
+      System.cmd("gleam", ["format"])
+    rescue
+      error ->
+        nil
+    end
+
+    result
   end
 end
