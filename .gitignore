@@ -25,8 +25,8 @@ ash_gleam-*.tar
 
 # Temporary files, for example, from tests.
 /tmp/
-generated/
-src/test_generated/
+/generated/
+/src/test_generated/
 build/
 
 # Per-worktree mise local override
@@ -37,3 +37,4 @@ mise.local.toml
 
 .DS_Store
 .dexter.db*
+example/src/generated/manifest.term

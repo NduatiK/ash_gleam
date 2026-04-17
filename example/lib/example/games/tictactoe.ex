@@ -24,6 +24,7 @@ defmodule Example.Games.TicTacToe do
       end
 
       action :mark, __MODULE__ do
+        update? true
         argument :game, __MODULE__, allow_nil?: false
         argument :x, :integer, allow_nil?: false
         argument :y, :integer, allow_nil?: false
