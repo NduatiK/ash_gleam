@@ -9,7 +9,7 @@ defmodule AshGleam.MixProject do
   @version "0.1.0"
 
   @description """
-  Generate type-safe Gleam clients directly from your Ash resources and actions, ensuring end-to-end type safety between your backend and frontend.
+  Generate type-safe Gleam clients directly from your Ash resources and actions, ensuring end-to-end type safety between Gleam and Elixir.
   """
 
   def project do
