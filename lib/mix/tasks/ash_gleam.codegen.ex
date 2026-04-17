@@ -37,6 +37,7 @@ defmodule Mix.Tasks.Ash.Gleam.Codegen do
       |> Keyword.update(:otp_app, nil, &String.to_atom/1)
 
     AshGleam.codegen(opts)
+
     Mix.Task.run("compile")
   end
 end
