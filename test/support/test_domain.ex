@@ -1,13 +1,19 @@
 defmodule AshGleam.TestDomain do
   use Ash.Domain,
     otp_app: :ash_gleam,
-    extensions: [AshGleam.FFI]
+    extensions: [AshGleam.FFI, AshGleam.DomainExtension]
 
   resources do
     resource AshGleam.TestTodo
     resource AshGleam.TestEmptyResource
     resource AshGleam.TestProject
     resource AshGleam.TestGame
+  end
+
+  gleam_updates do
+    resource AshGleam.TestTodo do
+      define_gleam_update :mark_completed, action: :update
+    end
   end
 
   gleam_ffi do
