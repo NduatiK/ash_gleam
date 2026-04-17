@@ -43,6 +43,10 @@ defmodule AshGleam.TestPolicyTodo do
     policy action(:update) do
       authorize_if actor_attribute_equals(:role, :admin)
     end
+
+    policy action(:admin_add) do
+      authorize_if actor_attribute_equals(:role, :admin)
+    end
   end
 
   gleam do
@@ -61,6 +65,14 @@ defmodule AshGleam.TestPolicyTodo do
         argument :b, :integer, allow_nil?: false
 
         run &:test_gleam.add/2
+      end
+      
+      action :add_with_context, :integer do
+        pass_context? true
+        argument :a, :integer, allow_nil?: false
+        argument :b, :integer, allow_nil?: false
+
+        run &:test_gleam.add_with_context/3
       end
     end
   end

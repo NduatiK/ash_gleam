@@ -170,6 +170,7 @@ defmodule AshGleam.Transformers.GenerateManualActions do
       return_type: action.return_type,
       constraints: action.constraints,
       allow_nil?: action.allow_nil?,
+      pass_context?: action.pass_context?,
       arguments:
         Enum.map(action.arguments, fn argument ->
           %{

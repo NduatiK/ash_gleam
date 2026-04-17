@@ -72,15 +72,16 @@ defmodule AshGleam.Transformers.ValidateGleamActions do
   defp validate_run(action) when is_function(action.run) do
     info = Function.info(action.run)
     arity = Keyword.fetch!(info, :arity)
+    expected_arity = length(action.arguments) + if(action.pass_context?, do: 1, else: 0)
 
-    if arity == length(action.arguments) and Keyword.get(info, :type) == :external do
+    if arity == expected_arity and Keyword.get(info, :type) == :external do
       :ok
     else
       {:error,
        Spark.Error.DslError.exception(
          module: Keyword.get(info, :module),
          message:
-           "`run` (#{inspect(action.run)}) must be a remote function capture whose arity matches the declared arguments"
+           "`run` (#{inspect(action.run)}) must be a remote function capture whose arity matches the declared arguments#{if action.pass_context?, do: " plus one context argument", else: ""}"
        )}
     end
   end

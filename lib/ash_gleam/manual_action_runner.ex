@@ -8,7 +8,7 @@ defmodule AshGleam.ManualActionRunner do
 
   alias Ash.Error.Unknown.UnknownError
 
-  def run(input, opts, _context) do
+  def run(input, opts, context) do
     config = Keyword.fetch!(opts, :config)
 
     args =
@@ -20,6 +20,14 @@ defmodule AshGleam.ManualActionRunner do
           constraints: argument.constraints
         )
       end)
+
+    args =
+      if config.pass_context? do
+        ash_opts = context |> Map.get(:private, %{}) |> Map.to_list()
+        [AshGleam.Context.new(ash_opts) | args]
+      else
+        args
+      end
 
     result =
       AshGleam.Interop.call!(

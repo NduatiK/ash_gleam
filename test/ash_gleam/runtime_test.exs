@@ -30,6 +30,15 @@ defmodule AshGleam.RuntimeTest do
     assert {:ok, 5} = AshGleam.TestTodo.add(%{a: 2, b: 3})
   end
 
+  test "pass_context? true injects context as first gleam argument" do
+    assert {:ok, 5} = AshGleam.TestPolicyTodo.add_with_context(%{a: 2, b: 3})
+  end
+
+  test "pass_context? true forwards actor in context to gleam" do
+    actor = %{role: :admin}
+    assert {:ok, 5} = AshGleam.TestPolicyTodo.add_with_context(%{a: 2, b: 3}, actor: actor)
+  end
+
   test "gleam actions support ok and error result types for scalars" do
     assert {:ok, 5} = AshGleam.TestTodo.safe_add(%{a: 2, b: 3})
 

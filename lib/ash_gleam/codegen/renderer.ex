@@ -44,7 +44,18 @@ defmodule AshGleam.Codegen.Renderer do
         }
       end)
 
-    %{gleam: reusable_type_modules ++ resource_modules ++ ffi_modules, elixir: elixir}
+    context_module = [%{path: "ash_gleam/context.gleam", contents: render_context_module()}]
+
+    %{
+      gleam: context_module ++ reusable_type_modules ++ resource_modules ++ ffi_modules,
+      elixir: elixir
+    }
+  end
+
+  defp render_context_module do
+    """
+    pub type Context
+    """
   end
 
   defp render_resource_files(resource, reusable_types, prefix) do
@@ -326,6 +337,7 @@ defmodule AshGleam.Codegen.Renderer do
     resource_type = resource.gleam_type
     resource_module = resource.module_name
     resource_import = "#{prefix}/#{resource_module}"
+    context_import = "import #{prefix}/ash_gleam/context.{type Context}"
 
     case ffi.kind do
       :create ->
@@ -352,15 +364,22 @@ defmodule AshGleam.Codegen.Renderer do
           Enum.map_join(create_fields, ", ", fn field -> field.name end)
 
         """
+        import gleam/option.{type Option, None}
         import #{resource_import}.{type #{resource_type}}
-        #{extra_imports}#{atom_imports}#{reusable_imports}pub type #{action_module} {
+        #{extra_imports}#{atom_imports}#{reusable_imports}#{context_import}
+        pub type #{action_module} {
           #{action_module}(
-        #{fields}
+        #{fields},
+            context: Option(Context),
           )
         }
 
         pub fn new(#{args}) -> #{action_module} {
-          #{action_module}(#{constructor})
+          #{action_module}(#{constructor}, None)
+        }
+
+        pub fn set_context(builder: #{action_module}, ctx: Context) -> #{action_module} {
+          #{action_module}(..builder, context: option.Some(ctx))
         }
 
         @external(erlang, "Elixir.#{inspect(domain_module)}.Generated", "#{ffi.ffi_name}")
@@ -386,23 +405,29 @@ defmodule AshGleam.Codegen.Renderer do
             argument.name
           end)
 
-        type_definition =
+        {type_definition, constructor_call, set_context_body} =
           if ffi.arguments == [] do
-            "#{action_module}"
+            {"#{action_module}(context: Option(Context))", "#{action_module}(context: None)",
+             """
+             pub fn set_context(_builder: #{action_module}, ctx: Context) -> #{action_module} {
+              #{action_module}(context: option.Some(ctx))
+             }
+             """}
           else
-            "#{action_module}(#{type_fields})"
-          end
-
-        constructor_call =
-          if ffi.arguments == [] do
-            action_module
-          else
-            "#{action_module}(#{constructor})"
+            {"#{action_module}(#{type_fields}, context: Option(Context))",
+             "#{action_module}(#{constructor}, None)",
+             """
+             pub fn set_context(builder: #{action_module}, ctx: Context) -> #{action_module} {
+               #{action_module}(..builder, context: option.Some(ctx))
+             }
+             """}
           end
 
         """
+        import gleam/option.{type Option, None}
         import #{resource_import}.{type #{resource_type}}
-        #{atom_imports}#{reusable_imports}
+        #{atom_imports}#{reusable_imports}#{context_import}
+
         pub type #{action_module} {
           #{type_definition}
         }
@@ -411,20 +436,28 @@ defmodule AshGleam.Codegen.Renderer do
           #{constructor_call}
         }
 
+        #{set_context_body}
+
         @external(erlang, "Elixir.#{inspect(domain_module)}.Generated", "#{ffi.ffi_name}")
         pub fn run(builder: #{action_module}) -> Result(#{resource_type}, String)
         """
 
       :destroy ->
         """
+        import gleam/option.{type Option, None}
         import #{resource_import}.{type #{resource_type}}
+        #{context_import}
 
         pub type #{action_module} {
-          #{action_module}(record: #{resource_type})
+          #{action_module}(record: #{resource_type}, context: Option(Context))
         }
 
         pub fn new(record: #{resource_type}) -> #{action_module} {
-          #{action_module}(record)
+          #{action_module}(record, None)
+        }
+
+        pub fn set_context(builder: #{action_module}, ctx: Context) -> #{action_module} {
+          #{action_module}(..builder, context: option.Some(ctx))
         }
 
         @external(erlang, "Elixir.#{inspect(domain_module)}.Generated", "#{ffi.ffi_name}")
@@ -435,32 +468,35 @@ defmodule AshGleam.Codegen.Renderer do
         """
         import gleam/option.{None, type Option}
         import #{resource_import}.{type #{resource_type}, type #{resource_type}Filter, type #{resource_type}Sort}
+        #{context_import}
 
         pub type #{action_module} {
           #{action_module}(
             filter: List(#{resource_type}Filter),
             sort: List(#{resource_type}Sort),
             limit: Option(Int),
+            context: Option(Context),
           )
         }
 
         pub fn new() -> #{action_module} {
-          #{action_module}([], [], None)
+          #{action_module}([], [], None, None)
         }
 
         pub fn filter(builder: #{action_module}, filters: List(#{resource_type}Filter)) -> #{action_module} {
-          let #{action_module}(_, sort, limit) = builder
-          #{action_module}(filters, sort, limit)
+          #{action_module}(..builder, filter: filters)
         }
 
         pub fn sort(builder: #{action_module}, sorts: List(#{resource_type}Sort)) -> #{action_module} {
-          let #{action_module}(filter, _, limit) = builder
-          #{action_module}(filter, sorts, limit)
+          #{action_module}(..builder, sort: sorts)
         }
 
         pub fn limit(builder: #{action_module}, limit: Option(Int)) -> #{action_module} {
-          let #{action_module}(filter, sort, _) = builder
-          #{action_module}(filter, sort, limit)
+          #{action_module}(..builder, limit: limit)
+        }
+
+        pub fn set_context(builder: #{action_module}, ctx: Context) -> #{action_module} {
+          #{action_module}(..builder, context: option.Some(ctx))
         }
 
         @external(erlang, "Elixir.#{inspect(domain_module)}.Generated", "#{ffi.ffi_name}")
@@ -498,16 +534,18 @@ defmodule AshGleam.Codegen.Renderer do
 
         """
           def #{ffi.ffi_name}(builder) do
-            params =
+            {params, ctx_opts} =
               AshGleam.Generated.Bridge.decode_create(
                 builder,
                 #{inspect(resource.module)},
                 #{inspect(create_field_names)}
               )
 
+            base_opts = [domain: #{inspect(domain_module)}] ++ ctx_opts
+
             #{inspect(resource.module)}
-            |> Ash.Changeset.for_create(#{inspect(ffi.action)}, params, domain: #{inspect(domain_module)})
-            |> Ash.create(domain: #{inspect(domain_module)})
+            |> Ash.Changeset.for_create(#{inspect(ffi.action)}, params, base_opts)
+            |> Ash.create(base_opts)
             |> AshGleam.Generated.Bridge.encode_result(&AshGleam.Marshal.to_gleam(#{inspect(resource.module)}, &1))
           end
         """
@@ -515,11 +553,13 @@ defmodule AshGleam.Codegen.Renderer do
       :get ->
         """
           def #{ffi.ffi_name}(builder) do
-            params = AshGleam.Generated.Bridge.decode_action(builder, #{inspect(ffi.arguments)})
+            {params, ctx_opts} = AshGleam.Generated.Bridge.decode_action(builder, #{inspect(ffi.arguments)})
+
+            base_opts = [domain: #{inspect(domain_module)}] ++ ctx_opts
 
             #{inspect(resource.module)}
-            |> Query.for_read(#{inspect(ffi.action)}, params, domain: #{inspect(domain_module)})
-            |> Ash.read_one(domain: #{inspect(domain_module)})
+            |> Query.for_read(#{inspect(ffi.action)}, params, base_opts)
+            |> Ash.read_one(base_opts)
             |> AshGleam.Generated.Bridge.encode_result(&AshGleam.Marshal.to_gleam(#{inspect(resource.module)}, &1))
           end
         """
@@ -527,15 +567,17 @@ defmodule AshGleam.Codegen.Renderer do
       :destroy ->
         """
           def #{ffi.ffi_name}(builder) do
-            %{record: record} =
+            {%{record: record}, ctx_opts} =
               AshGleam.Generated.Bridge.decode_action(
                 builder,
                 [%{name: :record, type: #{inspect(resource.module)}, allow_nil?: false}]
               )
 
+            base_opts = [domain: #{inspect(domain_module)}] ++ ctx_opts
+
             record
-            |> Ash.Changeset.for_destroy(#{inspect(ffi.action)}, %{}, domain: #{inspect(domain_module)})
-            |> Ash.destroy(domain: #{inspect(domain_module)})
+            |> Ash.Changeset.for_destroy(#{inspect(ffi.action)}, %{}, base_opts)
+            |> Ash.destroy(base_opts)
             |> AshGleam.Generated.Bridge.encode_result(fn
               :ok -> true
               _ -> true
@@ -546,13 +588,15 @@ defmodule AshGleam.Codegen.Renderer do
       _ ->
         """
           def #{ffi.ffi_name}(builder) do
-            query =
+            {query, ctx_opts} =
               #{inspect(resource.module)}
               |> Query.for_read(#{inspect(ffi.action)}, %{}, domain: #{inspect(domain_module)})
               |> AshGleam.Generated.Bridge.apply_read_builder(#{inspect(resource.module)}, builder)
 
+            base_opts = [domain: #{inspect(domain_module)}] ++ ctx_opts
+
             query
-            |> Ash.read(domain: #{inspect(domain_module)})
+            |> Ash.read(base_opts)
             |> AshGleam.Generated.Bridge.encode_result(fn records ->
               Enum.map(records, &AshGleam.Marshal.to_gleam(#{inspect(resource.module)}, &1))
             end)

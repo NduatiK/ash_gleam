@@ -14,14 +14,18 @@ defmodule AshGleam.Generated.Bridge do
 
   def decode_create(builder, resource, field_names \\ nil) do
     [_constructor | values] = Tuple.to_list(builder)
+    {values, context_opts} = split_context(values)
 
-    resource
-    |> AshGleam.Resource.Info.fields()
-    |> maybe_filter_fields(field_names)
-    |> Enum.zip(values)
-    |> Map.new(fn {field, value} ->
-      {field.name, AshGleam.Marshal.output!(field.type, value, allow_nil?: field.allow_nil?)}
-    end)
+    params =
+      resource
+      |> AshGleam.Resource.Info.fields()
+      |> maybe_filter_fields(field_names)
+      |> Enum.zip(values)
+      |> Map.new(fn {field, value} ->
+        {field.name, AshGleam.Marshal.output!(field.type, value, allow_nil?: field.allow_nil?)}
+      end)
+
+    {params, context_opts}
   end
 
   def decode_action(builder, arguments) do
@@ -31,22 +35,47 @@ defmodule AshGleam.Generated.Bridge do
         _ -> builder |> Tuple.to_list() |> tl()
       end
 
-    arguments
-    |> Enum.zip(values)
-    |> Map.new(fn {argument, value} ->
-      {argument[:name],
-       AshGleam.Marshal.output!(argument[:type], value, allow_nil?: argument[:allow_nil?])}
-    end)
+    {values, context_opts} = split_context(values)
+
+    params =
+      arguments
+      |> Enum.zip(values)
+      |> Map.new(fn {argument, value} ->
+        {argument[:name],
+         AshGleam.Marshal.output!(argument[:type], value, allow_nil?: argument[:allow_nil?])}
+      end)
+
+    {params, context_opts}
   end
 
   def apply_read_builder(query, resource, builder) do
-    {_constructor, filters, sorts, limit} = builder
+    list = Tuple.to_list(builder)
+    [_constructor, filters, sorts, limit | rest] = list
+    context_opts = extract_context_from_rest(rest)
 
-    query
-    |> maybe_filter(resource, filters)
-    |> maybe_sort(resource, sorts)
-    |> maybe_limit(limit)
+    query =
+      query
+      |> maybe_filter(resource, filters)
+      |> maybe_sort(resource, sorts)
+      |> maybe_limit(limit)
+
+    {query, context_opts}
   end
+
+  defp split_context(values) do
+    case List.last(values) do
+      {:some, {:context, _} = ctx} ->
+        {Enum.drop(values, -1), AshGleam.Context.to_opts(ctx)}
+
+      _ ->
+        {values, []}
+    end
+  end
+
+  defp extract_context_from_rest([{:some, {:context, _} = ctx}]),
+    do: AshGleam.Context.to_opts(ctx)
+
+  defp extract_context_from_rest(_), do: []
 
   defp maybe_filter(query, _resource, []), do: query
 

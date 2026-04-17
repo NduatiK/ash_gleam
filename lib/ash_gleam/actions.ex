@@ -34,7 +34,8 @@ defmodule AshGleam.Actions do
               Field.new(:constraints, :keyword_list, default: []),
               Field.new(:run, :any, required: true),
               Field.new(:allow_nil?, :boolean, default: false),
-              Field.new(:update?, :boolean, default: false)
+              Field.new(:update?, :boolean, default: false),
+              Field.new(:pass_context?, :boolean, default: false)
             ],
             entities: [arguments: [@argument]],
             identifier: :name

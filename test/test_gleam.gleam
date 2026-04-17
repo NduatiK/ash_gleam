@@ -1,5 +1,6 @@
 import gleam/list
 
+import test_generated/src/ash_gleam/context.{type Context}
 import test_generated/src/ash_gleam/test_mark.{type TestMark, Empty}
 import test_generated/src/ash_gleam/test_player.{X}
 import test_generated/src/ash_gleam/test_winner.{type TestWinner, Player}
@@ -14,6 +15,10 @@ pub fn mark_completed(item: Todo) -> Todo {
 }
 
 pub fn add(a: Int, b: Int) -> Int {
+  a + b
+}
+
+pub fn add_with_context(_ctx: Context, a: Int, b: Int) -> Int {
   a + b
 }
 
@@ -37,7 +42,7 @@ pub fn first_completed_from_elixir() -> Todo {
 }
 
 pub fn delete_from_elixir(todo_item: Todo) -> Result(Bool, String) {
-  destroy_todo.DestroyTodo(todo_item)
+  destroy_todo.new(todo_item)
   |> destroy_todo.run
 }
 
