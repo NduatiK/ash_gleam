@@ -130,7 +130,7 @@ defmodule AshGleam.Codegen.Renderer do
 
         payload =
           Enum.map_join(variant.fields, ", ", fn field ->
-            gleam_type_for_type(field.type, field.constraints, field.allow_nil?, field.name)
+            field.name <> ": "<> gleam_type_for_type(field.type, field.constraints, field.allow_nil?, field.name)
           end)
 
         case variant.fields do
