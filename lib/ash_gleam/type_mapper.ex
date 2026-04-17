@@ -171,8 +171,12 @@ defmodule AshGleam.TypeMapper do
           |> Keyword.get(:items, [])
           |> List.wrap()
 
-        with {:ok, inner} <- do_gleam_type(name, inner, item_constraints),
-             do: {:ok, "List(#{inner})"}
+        nil_items? = Keyword.get(constraints, :nil_items?, false)
+
+        with {:ok, inner} <- do_gleam_type(name, inner, item_constraints) do
+          inner = if nil_items?, do: "Option(#{inner})", else: inner
+          {:ok, "List(#{inner})"}
+        end
 
       {:ok, {:resource, module}} ->
         {:ok, AshGleam.Resource.Info.gleam_type_name!(module)}

@@ -23,16 +23,10 @@ defmodule AshGleam.Marshal do
 
   @spec output!(term(), term(), Keyword.t()) :: term()
   def output!(type, value, opts \\ []) do
-    cond do
-      value == :none and Keyword.get(opts, :allow_nil?, false) ->
-        nil
-
-      match?({:some, _}, value) and Keyword.get(opts, :allow_nil?, false) ->
-        {:some, inner} = value
-        marshal(type, inner, opts, :from_gleam)
-
-      true ->
-        marshal(type, value, opts, :from_gleam)
+    if value == :none do
+      nil
+    else
+      marshal(type, value, opts, :from_gleam)
     end
   rescue
     error ->
@@ -95,15 +89,23 @@ defmodule AshGleam.Marshal do
   defp marshal(type, value, opts, direction)
 
   defp marshal({:array, inner}, value, opts, direction) when is_list(value) do
-    Enum.map(
-      value,
-      &marshal(
-        inner,
-        &1,
-        [constraints: Keyword.get(opts, :constraints, []) |> Keyword.get(:items, [])],
-        direction
-      )
-    )
+    constraints = Keyword.get(opts, :constraints, [])
+    item_constraints = Keyword.get(constraints, :items, [])
+    nil_items? = Keyword.get(constraints, :nil_items?, false)
+
+    Enum.map(value, fn item ->
+      if nil_items? do
+        case direction do
+          :to_gleam ->
+            if is_nil(item), do: :none, else: marshal(inner, item, [constraints: item_constraints], direction)
+
+          :from_gleam ->
+            if item == :none, do: nil, else: marshal(inner, item, [constraints: item_constraints], direction)
+        end
+      else
+        marshal(inner, item, [constraints: item_constraints], direction)
+      end
+    end)
   end
 
   defp marshal(type, value, opts, :to_gleam) when is_atom(type) do

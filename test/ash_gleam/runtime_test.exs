@@ -164,6 +164,12 @@ defmodule AshGleam.RuntimeTest do
                AshGleam.TestTodo,
                {:todo, "todo-1", "Write docs", false, 1}
              )
+             
+    assert %AshGleam.TestTodo{id: "todo-1", title: "Write docs", completed: false} =
+             AshGleam.Marshal.from_gleam(
+               AshGleam.TestTodo,
+               {:todo, "todo-1", "Write docs", false, 1}
+             )
   end
 
   test "marshal handles reusable enum and union modules" do
@@ -197,7 +203,8 @@ defmodule AshGleam.RuntimeTest do
     }
 
     assert AshGleam.Marshal.to_gleam(AshGleam.TestGame, game) ==
-             {:game, "game-1", "Tic Tac Toe", [nil, nil, nil, nil, nil, nil, nil, nil, nil], :x,
+             {:game, "game-1", "Tic Tac Toe",
+              [:none, :none, :none, :none, :none, :none, :none, :none, :none], :x,
               :in_progress, :draw}
 
     assert %AshGleam.TestGame{
@@ -209,7 +216,8 @@ defmodule AshGleam.RuntimeTest do
            } =
              AshGleam.Marshal.from_gleam(
                AshGleam.TestGame,
-               {:game, "game-1", "Tic Tac Toe", [nil, nil, nil, nil, nil, nil, nil, nil, nil], :x,
+               {:game, "game-1", "Tic Tac Toe",
+                [:none, :none, :none, :none, :none, :none, :none, :none, :none], :x,
                 :in_progress, :draw}
              )
   end
@@ -224,7 +232,8 @@ defmodule AshGleam.RuntimeTest do
     }
 
     assert AshGleam.Marshal.to_gleam(AshGleam.TestGame, game) ==
-             {:game, "game-2", "Tic Tac Toe", [nil, nil, nil, nil, nil, nil, nil, nil, nil], :o,
+             {:game, "game-2", "Tic Tac Toe",
+              [:none, :none, :none, :none, :none, :none, :none, :none, :none], :o,
               :finished, :none}
 
     assert %AshGleam.TestGame{
@@ -236,7 +245,8 @@ defmodule AshGleam.RuntimeTest do
            } =
              AshGleam.Marshal.from_gleam(
                AshGleam.TestGame,
-               {:game, "game-2", "Tic Tac Toe", [nil, nil, nil, nil, nil, nil, nil, nil, nil], :o,
+               {:game, "game-2", "Tic Tac Toe",
+                [:none, :none, :none, :none, :none, :none, :none, :none, :none], :o,
                 :finished, :none}
              )
   end

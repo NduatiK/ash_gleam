@@ -3,10 +3,11 @@ import generated/src/example/games/tic_tac_toe/player
 import generated/src/example/games/tic_tac_toe/winner
 import generated/src/tic_tac_toe.{type TicTacToe, TicTacToe}
 import gleam/list
+import gleam/option.{None, Some}
 import gleam/result.{try_recover as else_try}
 
 type Grid =
-  List(mark.Mark)
+  List(option.Option(mark.Mark))
 
 pub type Error {
   OutOfBounds(x: Int, y: Int)
@@ -15,7 +16,7 @@ pub type Error {
 
 pub fn mark(game: TicTacToe, x: Int, y: Int) -> Result(TicTacToe, Error) {
   case { peek(game, x, y) } {
-    Ok(mark.Empty) -> {
+    Ok(None) -> {
       let board =
         put(game.board, x, y, case game.current_player {
           player.O -> mark.O
@@ -26,7 +27,7 @@ pub fn mark(game: TicTacToe, x: Int, y: Int) -> Result(TicTacToe, Error) {
       Ok(game)
     }
 
-    Ok(mark) -> {
+    Ok(Some(mark)) -> {
       Error(AlreadyMarked(x, y, mark))
     }
 
@@ -62,7 +63,7 @@ pub fn win(game: TicTacToe) -> winner.Winner {
 }
 
 fn is_filled(game: TicTacToe) -> Bool {
-  !list.any(game.board, fn(v) { v == mark.Empty })
+  list.all(game.board, option.is_some)
 }
 
 fn next_turn(mark: player.Player) -> player.Player {
@@ -77,9 +78,10 @@ fn check(grid: Grid, coordinates: List(#(Int, Int))) -> Result(_, Nil) {
     coordinates
     |> list.map(get(grid, _))
     |> result.values
+    |> option.values
 
   case marks {
-    [x, y, z] if x == y && y == z && x != mark.Empty -> {
+    [x, y, z] if x == y && y == z -> {
       Ok(case x {
         mark.O -> winner.Player(player.O)
         _ -> winner.Player(player.X)
@@ -122,7 +124,7 @@ fn put(grid: Grid, x: Int, y: Int, value: mark.Mark) {
   }
 
   case list.split(grid, index) {
-    #(before, [mark.Empty, ..rest]) -> list.append(before, [value, ..rest])
+    #(before, [None, ..rest]) -> list.append(before, [Some(value), ..rest])
     _ -> grid
   }
 }

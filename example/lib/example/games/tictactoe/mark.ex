@@ -3,5 +3,4 @@ defmodule Example.Games.TicTacToe.Mark do
 
   variant :x
   variant :o
-  variant :empty
 end

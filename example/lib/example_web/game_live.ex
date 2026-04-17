@@ -32,7 +32,7 @@ defmodule ExampleWeb.Example.GameLive do
 
   def mount(%{"id" => id}, _session, socket) do
     case Games.get_tictactoe(id) do
-      {:error, game} ->
+      {:error, _} ->
         {:ok,
          socket
          |> put_flash(:error, "Game not found, creating new game")
@@ -85,7 +85,7 @@ defmodule ExampleWeb.Example.GameLive do
 
   defp ended?(%TicTacToe{} = game) do
     case TicTacToe.win!(%{game: game}) do
-      :none -> false
+      nil -> false
       _ -> true
     end
   end
@@ -95,7 +95,7 @@ defmodule ExampleWeb.Example.GameLive do
       {:player, :x} -> "Game! X 🎉"
       {:player, :o} -> "Game! O 🎉"
       :draw -> "Draw"
-      :none -> nil
+      nil -> nil
     end
   end
 

@@ -15,9 +15,10 @@ defmodule Example.Games.TicTacToe do
 
   gleam do
     type_name("TicTacToe")
-    
+
     actions do
       action :win, Winner do
+        allow_nil? true
         argument :game, __MODULE__, allow_nil?: false
 
         run &:tictactoe.win/1
@@ -33,6 +34,7 @@ defmodule Example.Games.TicTacToe do
       end
 
       action :peek, Mark do
+        allow_nil? true
         argument :game, __MODULE__, allow_nil?: false
         argument :x, :integer, allow_nil?: false
         argument :y, :integer, allow_nil?: false
@@ -65,7 +67,8 @@ defmodule Example.Games.TicTacToe do
     attribute :board, {:array, Mark} do
       allow_nil? false
       public? true
-      default [:empty, :empty, :empty, :empty, :empty, :empty, :empty, :empty, :empty]
+      default [nil, nil, nil, nil, nil, nil, nil, nil, nil]
+      constraints nil_items?: true
     end
 
     attribute :current_player, Player do

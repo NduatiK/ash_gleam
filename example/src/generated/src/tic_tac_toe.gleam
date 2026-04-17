@@ -6,7 +6,7 @@ import gleam/option.{type Option}
 pub type TicTacToe {
   TicTacToe(
     id: String,
-    board: List(Mark),
+    board: List(Option(Mark)),
     current_player: Player,
     winner: Option(Winner),
   )
@@ -58,7 +58,7 @@ pub fn winner_desc() -> TicTacToeSort {
 
 pub type TicTacToeFilter {
   IdEq(String)
-  BoardEq(List(Mark))
+  BoardEq(List(Option(Mark)))
   CurrentPlayerEq(Player)
   WinnerEq(Winner)
 }
@@ -67,7 +67,7 @@ pub fn id_eq(value: String) -> TicTacToeFilter {
   IdEq(value)
 }
 
-pub fn board_eq(value: List(Mark)) -> TicTacToeFilter {
+pub fn board_eq(value: List(Option(Mark))) -> TicTacToeFilter {
   BoardEq(value)
 }
 
