@@ -442,6 +442,53 @@ defmodule AshGleam.Codegen.Renderer do
         pub fn run(builder: #{action_module}) -> Result(#{resource_type}, String)
         """
 
+      :action ->
+        atom_imports = atom_type_imports(resource, ffi.arguments, prefix)
+        reusable_imports = reusable_type_imports(ffi.arguments, %{}, prefix)
+
+        gleam_return_type = gleam_type_for_type(ffi.returns, [], ffi.allow_nil?, nil)
+
+        args =
+          Enum.map_join(ffi.arguments, ", ", fn argument ->
+            "#{argument.name}: #{gleam_type!(argument, argument.allow_nil?)}"
+          end)
+
+        type_fields =
+          Enum.map_join(ffi.arguments, ", ", fn argument ->
+            "#{argument.name}: #{gleam_type!(argument, argument.allow_nil?)}"
+          end)
+
+        constructor =
+          Enum.map_join(ffi.arguments, ", ", fn argument -> argument.name end)
+
+        {type_definition, constructor_call, set_context_body} =
+          if ffi.arguments == [] do
+            {"#{action_module}(context: Option(Context))", "#{action_module}(context: None)",
+             "pub fn set_context(_builder: #{action_module}, ctx: Context) -> #{action_module} {\n  #{action_module}(context: option.Some(ctx))\n}"}
+          else
+            {"#{action_module}(#{type_fields}, context: Option(Context))",
+             "#{action_module}(#{constructor}, None)",
+             "pub fn set_context(builder: #{action_module}, ctx: Context) -> #{action_module} {\n  #{action_module}(..builder, context: option.Some(ctx))\n}"}
+          end
+
+        """
+        import gleam/option.{type Option, None}
+        #{atom_imports}#{reusable_imports}#{context_import}
+
+        pub type #{action_module} {
+          #{type_definition}
+        }
+
+        pub fn new(#{args}) -> #{action_module} {
+          #{constructor_call}
+        }
+
+        #{set_context_body}
+
+        @external(erlang, "Elixir.#{inspect(domain_module)}.Generated", "#{ffi.ffi_name}")
+        pub fn run(builder: #{action_module}) -> Result(#{gleam_return_type}, String)
+        """
+
       :destroy ->
         """
         import gleam/option.{type Option, None}
@@ -510,14 +557,13 @@ defmodule AshGleam.Codegen.Renderer do
       Enum.map_join(domain.ffi, "\n\n", fn ffi ->
         render_bridge_function(domain.module, resources[ffi.resource], ffi)
       end)
+      |> String.trim()
 
     """
     defmodule #{inspect(domain.module)}.Generated do
       @moduledoc false
 
-      alias Ash.Query
-
-    #{actions}
+      #{actions}
     end
     """
   end
@@ -550,6 +596,20 @@ defmodule AshGleam.Codegen.Renderer do
           end
         """
 
+      :action ->
+        """
+          def #{ffi.ffi_name}(builder) do
+            {params, ctx_opts} = AshGleam.Generated.Bridge.decode_action(builder, #{inspect(ffi.arguments)})
+
+            base_opts = [domain: #{inspect(domain_module)}] ++ ctx_opts
+
+            #{inspect(resource.module)}
+            |> Ash.ActionInput.for_action(#{inspect(ffi.action)}, params, base_opts)
+            |> Ash.run_action(base_opts)
+            |> AshGleam.Generated.Bridge.encode_result(& &1)
+          end
+        """
+
       :get ->
         """
           def #{ffi.ffi_name}(builder) do
@@ -558,7 +618,7 @@ defmodule AshGleam.Codegen.Renderer do
             base_opts = [domain: #{inspect(domain_module)}] ++ ctx_opts
 
             #{inspect(resource.module)}
-            |> Query.for_read(#{inspect(ffi.action)}, params, base_opts)
+            |> Ash.Query.for_read(#{inspect(ffi.action)}, params, base_opts)
             |> Ash.read_one(base_opts)
             |> AshGleam.Generated.Bridge.encode_result(&AshGleam.Marshal.to_gleam(#{inspect(resource.module)}, &1))
           end
@@ -590,7 +650,7 @@ defmodule AshGleam.Codegen.Renderer do
           def #{ffi.ffi_name}(builder) do
             {query, ctx_opts} =
               #{inspect(resource.module)}
-              |> Query.for_read(#{inspect(ffi.action)}, %{}, domain: #{inspect(domain_module)})
+              |> Ash.Query.for_read(#{inspect(ffi.action)}, %{}, domain: #{inspect(domain_module)})
               |> AshGleam.Generated.Bridge.apply_read_builder(#{inspect(resource.module)}, builder)
 
             base_opts = [domain: #{inspect(domain_module)}] ++ ctx_opts

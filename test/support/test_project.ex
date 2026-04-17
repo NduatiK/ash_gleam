@@ -12,7 +12,7 @@ defmodule AshGleam.TestProject do
 
   gleam do
     type_name "Project"
-    module_name "project_item"
+    module_name("project_item")
 
     actions do
       action :complete_all_tasks, __MODULE__ do

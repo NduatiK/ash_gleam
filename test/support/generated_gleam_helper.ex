@@ -13,7 +13,10 @@ defmodule AshGleam.GeneratedGleamHelper do
     Mix.Task.run("compile.erlang")
 
     Code.prepend_path("_build/test/lib/ash_gleam/ebin")
-    Code.compile_file("#{AshGleam.Info.elixir_dir()}/ash_gleam/test_domain/generated.ex")
+
+    for file <- Path.wildcard("#{AshGleam.Info.elixir_dir()}/ash_gleam/**/*.ex") do
+      Code.compile_file(file)
+    end
 
     :ok
   end

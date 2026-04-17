@@ -65,10 +65,25 @@ defmodule AshGleam.Generated.Bridge do
   defp split_context(values) do
     case List.last(values) do
       {:some, {:context, _} = ctx} ->
-        {Enum.drop(values, -1), AshGleam.Context.to_opts(ctx)}
+        {Enum.drop(values, -1),
+         AshGleam.Context.to_opts(ctx)
+         |> Map.from_struct()
+         |> Map.take([
+           :domain,
+           :context,
+           :authorize?,
+           :tenant,
+           :scope,
+           :actor,
+           :skip_unknown_inputs,
+           :tracer,
+           :private_arguments,
+           :load
+         ])
+         |> Map.to_list()}
 
       _ ->
-        {values, []}
+        {Enum.drop(values, -1), []}
     end
   end
 

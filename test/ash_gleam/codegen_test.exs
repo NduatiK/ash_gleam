@@ -84,7 +84,7 @@ defmodule AshGleam.CodegenTest do
 
           gleam do
             type_name "TicTacToe"
-            module_name "tic_tac_toe"
+            module_name("tic_tac_toe")
           end
 
           attributes do
@@ -119,7 +119,12 @@ defmodule AshGleam.CodegenTest do
 
     on_exit(fn ->
       File.rm_rf(tmp)
-      Application.put_env(:ash_gleam, :ash_domains, [AshGleam.TestDomain])
+
+      Application.put_env(
+        :ash_gleam,
+        :ash_domains,
+        Application.get_env(:ash_gleam, :default_ash_domains)
+      )
     end)
 
     Application.put_env(:ash_gleam, :ash_domains, [domain])
@@ -215,7 +220,7 @@ defmodule AshGleam.CodegenTest do
 
           gleam do
             type_name "ReusableOne"
-            module_name "reusable_one"
+            module_name("reusable_one")
 
             actions do
               action :next_mark, unquote(mark) do
@@ -244,7 +249,7 @@ defmodule AshGleam.CodegenTest do
 
           gleam do
             type_name "ReusableTwo"
-            module_name "reusable_two"
+            module_name("reusable_two")
           end
 
           attributes do
@@ -261,7 +266,12 @@ defmodule AshGleam.CodegenTest do
 
     on_exit(fn ->
       File.rm_rf(tmp)
-      Application.put_env(:ash_gleam, :ash_domains, [AshGleam.TestDomain])
+
+      Application.put_env(
+        :ash_gleam,
+        :ash_domains,
+        Application.get_env(:ash_gleam, :default_ash_domains)
+      )
     end)
 
     Application.put_env(:ash_gleam, :ash_domains, [domain])
@@ -349,7 +359,7 @@ defmodule AshGleam.CodegenTest do
 
           gleam do
             type_name "ReusableWinner"
-            module_name "reusable_winner"
+            module_name("reusable_winner")
           end
 
           attributes do
@@ -366,7 +376,12 @@ defmodule AshGleam.CodegenTest do
 
     on_exit(fn ->
       File.rm_rf(tmp)
-      Application.put_env(:ash_gleam, :ash_domains, [AshGleam.TestDomain])
+
+      Application.put_env(
+        :ash_gleam,
+        :ash_domains,
+        Application.get_env(:ash_gleam, :default_ash_domains)
+      )
     end)
 
     Application.put_env(:ash_gleam, :ash_domains, [domain])
@@ -474,7 +489,7 @@ defmodule AshGleam.CodegenTest do
 
           gleam do
             type_name "BoardState"
-            module_name "board_state"
+            module_name("board_state")
           end
 
           attributes do
@@ -496,7 +511,12 @@ defmodule AshGleam.CodegenTest do
 
     on_exit(fn ->
       File.rm_rf(tmp)
-      Application.put_env(:ash_gleam, :ash_domains, [AshGleam.TestDomain])
+
+      Application.put_env(
+        :ash_gleam,
+        :ash_domains,
+        Application.get_env(:ash_gleam, :default_ash_domains)
+      )
     end)
 
     Application.put_env(:ash_gleam, :ash_domains, [domain])

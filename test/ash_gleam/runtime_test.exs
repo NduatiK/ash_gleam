@@ -31,12 +31,11 @@ defmodule AshGleam.RuntimeTest do
   end
 
   test "pass_context? true injects context as first gleam argument" do
-    assert {:ok, 5} = AshGleam.TestPolicyTodo.add_with_context(%{a: 2, b: 3})
-  end
+    assert {:ok, 5} =
+             AshGleam.TestPolicyTodo.gleam_admin_add(%{a: 2, b: 3}, actor: %{role: :admin})
 
-  test "pass_context? true forwards actor in context to gleam" do
-    actor = %{role: :admin}
-    assert {:ok, 5} = AshGleam.TestPolicyTodo.add_with_context(%{a: 2, b: 3}, actor: actor)
+    assert {:error, %Ash.Error.Forbidden{}} =
+             AshGleam.TestPolicyTodo.gleam_admin_add(%{a: 2, b: 3}, actor: %{role: :user})
   end
 
   test "gleam actions support ok and error result types for scalars" do
@@ -184,7 +183,7 @@ defmodule AshGleam.RuntimeTest do
                AshGleam.TestTodo,
                {:todo, "todo-1", "Write docs", false, 1}
              )
-             
+
     assert %AshGleam.TestTodo{id: "todo-1", title: "Write docs", completed: false} =
              AshGleam.Marshal.from_gleam(
                AshGleam.TestTodo,
@@ -224,8 +223,8 @@ defmodule AshGleam.RuntimeTest do
 
     assert AshGleam.Marshal.to_gleam(AshGleam.TestGame, game) ==
              {:game, "game-1", "Tic Tac Toe",
-              [:none, :none, :none, :none, :none, :none, :none, :none, :none], :x,
-              :in_progress, :draw}
+              [:none, :none, :none, :none, :none, :none, :none, :none, :none], :x, :in_progress,
+              :draw}
 
     assert %AshGleam.TestGame{
              id: "game-1",
@@ -237,8 +236,8 @@ defmodule AshGleam.RuntimeTest do
              AshGleam.Marshal.from_gleam(
                AshGleam.TestGame,
                {:game, "game-1", "Tic Tac Toe",
-                [:none, :none, :none, :none, :none, :none, :none, :none, :none], :x,
-                :in_progress, :draw}
+                [:none, :none, :none, :none, :none, :none, :none, :none, :none], :x, :in_progress,
+                :draw}
              )
   end
 
@@ -253,8 +252,8 @@ defmodule AshGleam.RuntimeTest do
 
     assert AshGleam.Marshal.to_gleam(AshGleam.TestGame, game) ==
              {:game, "game-2", "Tic Tac Toe",
-              [:none, :none, :none, :none, :none, :none, :none, :none, :none], :o,
-              :finished, :none}
+              [:none, :none, :none, :none, :none, :none, :none, :none, :none], :o, :finished,
+              :none}
 
     assert %AshGleam.TestGame{
              id: "game-2",
@@ -266,8 +265,8 @@ defmodule AshGleam.RuntimeTest do
              AshGleam.Marshal.from_gleam(
                AshGleam.TestGame,
                {:game, "game-2", "Tic Tac Toe",
-                [:none, :none, :none, :none, :none, :none, :none, :none, :none], :o,
-                :finished, :none}
+                [:none, :none, :none, :none, :none, :none, :none, :none, :none], :o, :finished,
+                :none}
              )
   end
 

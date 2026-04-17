@@ -14,6 +14,8 @@ defmodule AshGleam.Interop do
     apply(module, function, args)
   rescue
     error ->
+      IO.inspect(error)
+
       raise ActionInterop,
         message: "Gleam interop call failed (#{inspect(error)})",
         resource: opts[:resource],

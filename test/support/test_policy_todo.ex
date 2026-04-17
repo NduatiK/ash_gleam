@@ -29,18 +29,31 @@ defmodule AshGleam.TestPolicyTodo do
       accept [:title, :completed]
       require_atomic? false
     end
+
+    action :admin_add, :integer do
+      argument :a, :integer, allow_nil?: false
+      argument :b, :integer, allow_nil?: false
+
+      run fn input, _context ->
+        {:ok, input.arguments.a + input.arguments.b}
+      end
+    end
   end
 
   policies do
     policy action(:add) do
       authorize_if actor_attribute_equals(:role, :admin)
     end
-    
+
     policy action(:mark_completed) do
       authorize_if actor_attribute_equals(:role, :admin)
     end
 
     policy action(:update) do
+      authorize_if actor_attribute_equals(:role, :admin)
+    end
+
+    policy action(:gleam_admin_add) do
       authorize_if actor_attribute_equals(:role, :admin)
     end
 
@@ -51,7 +64,7 @@ defmodule AshGleam.TestPolicyTodo do
 
   gleam do
     type_name "PolicyTodo"
-    module_name "policy_todo_item"
+    module_name("policy_todo_item")
 
     actions do
       action :mark_completed, __MODULE__ do
@@ -59,16 +72,16 @@ defmodule AshGleam.TestPolicyTodo do
         argument :todo, __MODULE__, allow_nil?: false
         run &:test_gleam_policy.mark_completed/1
       end
-      
+
       action :add, :integer do
         argument :a, :integer, allow_nil?: false
         argument :b, :integer, allow_nil?: false
 
         run &:test_gleam.add/2
       end
-      
-      action :add_with_context, :integer do
-        pass_context? true
+
+      action :gleam_admin_add, :integer do
+        pass_context?(true)
         argument :a, :integer, allow_nil?: false
         argument :b, :integer, allow_nil?: false
 

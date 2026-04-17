@@ -76,6 +76,8 @@ defmodule AshGleam.Codegen.Manifest do
             ffi_name: action_entry.ffi_name,
             action: action_entry.action,
             kind: ffi_kind(action),
+            returns: Map.get(action, :returns),
+            allow_nil?: Map.get(action, :allow_nil?, false),
             resource_gleam_module: resources[inspect(resource_entry.resource)].module_name,
             arguments:
               Enum.map(action.arguments, fn argument ->

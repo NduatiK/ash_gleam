@@ -8,6 +8,12 @@ defmodule AshGleam.TestPolicyDomain do
   end
 
   gleam do
+    ffi do
+      resource AshGleam.TestPolicyTodo do
+        action :admin_add, :admin_add
+      end
+    end
+
     code_interface do
       resource AshGleam.TestPolicyTodo do
         define_gleam_update :mark_completed, action: :update

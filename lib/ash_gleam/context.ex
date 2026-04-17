@@ -3,7 +3,6 @@
 # SPDX-License-Identifier: MIT
 
 defmodule AshGleam.Context do
-
   @spec new(Keyword.t()) :: {:context, Keyword.t()}
   def new(opts), do: {:context, opts}
 

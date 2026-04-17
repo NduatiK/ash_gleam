@@ -12,7 +12,7 @@ defmodule AshGleam.TestGame do
 
   gleam do
     type_name "Game"
-    module_name "game_item"
+    module_name("game_item")
   end
 
   attributes do

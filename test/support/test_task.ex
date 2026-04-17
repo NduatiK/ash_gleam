@@ -6,7 +6,7 @@ defmodule AshGleam.TestTask do
 
   gleam do
     type_name "Task"
-    module_name "task"
+    module_name("task")
   end
 
   attributes do

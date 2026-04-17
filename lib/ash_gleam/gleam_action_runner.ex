@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: MIT
 
-defmodule AshGleam.ManualActionRunner do
+defmodule AshGleam.GleamActionRunner do
   @moduledoc false
   use Ash.Resource.Actions.Implementation
 
@@ -23,8 +23,7 @@ defmodule AshGleam.ManualActionRunner do
 
     args =
       if config.pass_context? do
-        ash_opts = context |> Map.get(:private, %{}) |> Map.to_list()
-        [AshGleam.Context.new(ash_opts) | args]
+        [AshGleam.Context.new(context) | args]
       else
         args
       end

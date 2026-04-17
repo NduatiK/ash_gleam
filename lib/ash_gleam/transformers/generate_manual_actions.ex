@@ -42,7 +42,7 @@ defmodule AshGleam.Transformers.GenerateManualActions do
             constraints: constraints,
             allow_nil?: action.allow_nil?,
             arguments: args,
-            run: {AshGleam.ManualActionRunner, [config: runtime_config(action)]}
+            run: {AshGleam.GleamActionRunner, [config: runtime_config(action)]}
           )
 
         :error ->

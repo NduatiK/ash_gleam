@@ -1,5 +1,6 @@
 import gleam/list
 
+import test_generated/src/admin_add
 import test_generated/src/ash_gleam/context.{type Context}
 import test_generated/src/ash_gleam/test_mark.{type TestMark, Empty}
 import test_generated/src/ash_gleam/test_player.{X}
@@ -18,8 +19,10 @@ pub fn add(a: Int, b: Int) -> Int {
   a + b
 }
 
-pub fn add_with_context(_ctx: Context, a: Int, b: Int) -> Int {
-  a + b
+pub fn add_with_context(ctx: Context, a: Int, b: Int) -> Result(Int, String) {
+  admin_add.new(a, b)
+  |> admin_add.set_context(ctx)
+  |> admin_add.run()
 }
 
 pub fn safe_add(a: Int, b: Int) -> Result(Int, String) {

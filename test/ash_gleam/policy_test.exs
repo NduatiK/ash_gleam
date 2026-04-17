@@ -180,4 +180,27 @@ defmodule AshGleam.PolicyTest do
       AshGleam.TestPolicyDomain.mark_completed!(todo, %{}, actor: user_actor())
     end
   end
+
+  # --- Context forwarding: Gleam calls back into Ash using the received context ---
+
+  defp run_admin_add(params, opts) do
+    AshGleam.TestPolicyTodo
+    |> Ash.ActionInput.for_action(:admin_add, params, opts)
+    |> Ash.run_action(opts)
+  end
+
+  test "admin_add: authorized actor can call the plain Ash action" do
+    assert {:ok, 5} = run_admin_add(%{a: 2, b: 3}, actor: admin_actor())
+  end
+
+  test "admin_add: unauthorized actor is rejected at the outer boundary" do
+    assert {:error, %Ash.Error.Forbidden{}} =
+             run_admin_add(%{a: 2, b: 3}, actor: user_actor())
+  end
+
+  test "admin_add: context carries actor into the Gleam-initiated :add call" do
+    # Proves the actor flows all the way through:
+    # admin_add (authorized) → Gleam → TestPolicyTodo.add (authorized via context actor).
+    assert {:ok, 7} = run_admin_add(%{a: 3, b: 4}, actor: admin_actor())
+  end
 end
