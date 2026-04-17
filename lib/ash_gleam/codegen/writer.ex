@@ -13,7 +13,9 @@ defmodule AshGleam.Codegen.Writer do
     File.mkdir_p!(Path.dirname(AshGleam.Info.manifest_path(opts)))
 
     Enum.each(rendered.gleam, fn file ->
-      File.write!(Path.join(AshGleam.Info.gleam_dir(opts), file.path), file.contents)
+      path = Path.join(AshGleam.Info.gleam_dir(opts), file.path)
+      File.mkdir_p!(Path.dirname(path))
+      File.write!(path, file.contents)
     end)
 
     Enum.each(rendered.elixir, fn file ->

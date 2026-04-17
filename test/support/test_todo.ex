@@ -88,6 +88,16 @@ defmodule AshGleam.TestTodo do
 
         run &:test_gleam.next_mark/0
       end
+
+      action :announce_winner, AshGleam.TestWinner do
+        argument :winner, AshGleam.TestWinner, allow_nil?: false
+
+        run &:test_gleam.announce_winner/1
+      end
+
+      action :default_winner, AshGleam.TestWinner do
+        run &:test_gleam.default_winner/0
+      end
     end
   end
 end

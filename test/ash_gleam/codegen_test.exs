@@ -148,6 +148,197 @@ defmodule AshGleam.CodegenTest do
     assert winner_types =~ "pub type Winner {\n  X\n  O\n  Draw\n}"
   end
 
+  test "codegen de-duplicates reusable sum type modules across resources and actions" do
+    suffix = System.unique_integer([:positive])
+    domain = Module.concat([AshGleam, Dynamic, :"ReusableEnumDomain#{suffix}"])
+    mark = Module.concat([AshGleam, Dynamic, :"Mark#{suffix}"])
+    resource_one = Module.concat([AshGleam, Dynamic, :"ReusableEnumResourceOne#{suffix}"])
+    resource_two = Module.concat([AshGleam, Dynamic, :"ReusableEnumResourceTwo#{suffix}"])
+
+    quoted =
+      quote do
+        defmodule unquote(mark) do
+          use AshSumType
+
+          variant :a
+          variant :b
+          variant :c
+        end
+
+        defmodule unquote(domain) do
+          use Ash.Domain, otp_app: :ash_gleam
+
+          resources do
+            resource unquote(resource_one)
+            resource unquote(resource_two)
+          end
+        end
+
+        defmodule unquote(resource_one) do
+          use Ash.Resource,
+            otp_app: :ash_gleam,
+            domain: unquote(domain),
+            data_layer: Ash.DataLayer.Ets,
+            extensions: [AshGleam.Resource, AshGleam.Actions]
+
+          ets do
+            private? true
+          end
+
+          gleam do
+            type_name "ReusableOne"
+            module_name "reusable_one"
+
+            actions do
+              action :next_mark, unquote(mark) do
+                run &:test_gleam.next_mark/0
+              end
+            end
+          end
+
+          attributes do
+            uuid_primary_key :id
+            attribute :primary_mark, unquote(mark), public?: true
+            attribute :secondary_mark, unquote(mark), public?: true
+          end
+        end
+
+        defmodule unquote(resource_two) do
+          use Ash.Resource,
+            otp_app: :ash_gleam,
+            domain: unquote(domain),
+            data_layer: Ash.DataLayer.Ets,
+            extensions: [AshGleam.Resource]
+
+          ets do
+            private? true
+          end
+
+          gleam do
+            type_name "ReusableTwo"
+            module_name "reusable_two"
+          end
+
+          attributes do
+            uuid_primary_key :id
+            attribute :mark, unquote(mark), public?: true
+          end
+        end
+      end
+
+    compiled = Code.compile_quoted(quoted)
+    assert length(compiled) >= 4
+
+    tmp = Path.join(System.tmp_dir!(), "ash_gleam_codegen_reusable_enum_#{suffix}")
+
+    on_exit(fn ->
+      File.rm_rf(tmp)
+      Application.put_env(:ash_gleam, :ash_domains, [AshGleam.TestDomain])
+    end)
+
+    Application.put_env(:ash_gleam, :ash_domains, [domain])
+
+    assert :ok = AshGleam.codegen(otp_app: :ash_gleam, output: tmp)
+
+    gleam_src = AshGleam.Info.gleam_dir(output: tmp)
+    enum_path = Path.join(gleam_src, "ash_gleam/dynamic/mark#{suffix}.gleam")
+    resource_one_source = File.read!(Path.join(gleam_src, "reusable_one.gleam"))
+    resource_two_source = File.read!(Path.join(gleam_src, "reusable_two.gleam"))
+
+    assert File.exists?(enum_path)
+    assert File.read!(enum_path) =~ "pub type Mark#{suffix} {\n  A\n  B\n  C\n}"
+    assert resource_one_source =~ "/ash_gleam/dynamic/mark#{suffix}.{type Mark#{suffix}}"
+    assert resource_two_source =~ "/ash_gleam/dynamic/mark#{suffix}.{type Mark#{suffix}}"
+
+    assert [enum_path] ==
+             Path.wildcard(Path.join(gleam_src, "**/mark#{suffix}.gleam"))
+  end
+
+  test "codegen emits reusable union modules once and references them from resources" do
+    suffix = System.unique_integer([:positive])
+    domain = Module.concat([AshGleam, Dynamic, :"ReusableUnionDomain#{suffix}"])
+    player = Module.concat([AshGleam, Dynamic, :"Player#{suffix}"])
+    winner = Module.concat([AshGleam, Dynamic, :"Winner#{suffix}"])
+    resource = Module.concat([AshGleam, Dynamic, :"ReusableUnionResource#{suffix}"])
+
+    quoted =
+      quote do
+        defmodule unquote(player) do
+          use AshSumType
+
+          variant :x
+          variant :o
+        end
+
+        defmodule unquote(winner) do
+          use AshSumType
+
+          variant :draw
+
+          variant :player do
+            field :player, unquote(player), allow_nil?: false
+          end
+        end
+
+        defmodule unquote(domain) do
+          use Ash.Domain, otp_app: :ash_gleam
+
+          resources do
+            resource unquote(resource)
+          end
+        end
+
+        defmodule unquote(resource) do
+          use Ash.Resource,
+            otp_app: :ash_gleam,
+            domain: unquote(domain),
+            data_layer: Ash.DataLayer.Ets,
+            extensions: [AshGleam.Resource, AshGleam.Actions]
+
+          ets do
+            private? true
+          end
+
+          gleam do
+            type_name "ReusableWinner"
+            module_name "reusable_winner"
+          end
+
+          attributes do
+            uuid_primary_key :id
+            attribute :winner, unquote(winner), public?: true
+          end
+        end
+      end
+
+    compiled = Code.compile_quoted(quoted)
+    assert length(compiled) >= 4
+
+    tmp = Path.join(System.tmp_dir!(), "ash_gleam_codegen_reusable_union_#{suffix}")
+
+    on_exit(fn ->
+      File.rm_rf(tmp)
+      Application.put_env(:ash_gleam, :ash_domains, [AshGleam.TestDomain])
+    end)
+
+    Application.put_env(:ash_gleam, :ash_domains, [domain])
+
+    assert :ok = AshGleam.codegen(otp_app: :ash_gleam, output: tmp)
+
+    gleam_src = AshGleam.Info.gleam_dir(output: tmp)
+    winner_path = Path.join(gleam_src, "ash_gleam/dynamic/winner#{suffix}.gleam")
+    player_path = Path.join(gleam_src, "ash_gleam/dynamic/player#{suffix}.gleam")
+    resource_source = File.read!(Path.join(gleam_src, "reusable_winner.gleam"))
+
+    assert File.exists?(winner_path)
+    assert File.exists?(player_path)
+    assert File.read!(winner_path) =~ "pub type Winner#{suffix} {\n  Draw\n  Player(Player#{suffix})\n}"
+    assert resource_source =~ "/ash_gleam/dynamic/winner#{suffix}.{type Winner#{suffix}}"
+
+    assert [winner_path] ==
+             Path.wildcard(Path.join(gleam_src, "**/winner#{suffix}.gleam"))
+  end
+
   test "resource validation rejects atom fields without one_of constraint" do
     suffix = System.unique_integer([:positive])
     domain = Module.concat([AshGleam, Dynamic, :"InvalidAtomDomain#{suffix}"])

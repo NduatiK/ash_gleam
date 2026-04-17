@@ -16,8 +16,6 @@ defmodule AshGleam.Marshal do
     end
   rescue
     error ->
-      # IO.inspect(error)
-
       raise ActionInterop,
         message: "Failed to marshal input",
         details: %{phase: :marshal_input, type: type, error: Exception.message(error)}
@@ -25,7 +23,6 @@ defmodule AshGleam.Marshal do
 
   @spec output!(term(), term(), Keyword.t()) :: term()
   def output!(type, value, opts \\ []) do
-    # IO.inspect({type, value})
     cond do
       value == :none and Keyword.get(opts, :allow_nil?, false) ->
         nil
@@ -39,8 +36,6 @@ defmodule AshGleam.Marshal do
     end
   rescue
     error ->
-      IO.inspect(error)
-
       raise ActionInterop,
         message: "Failed to marshal output",
         details: %{phase: :marshal_output, type: type, error: Exception.message(error)}
@@ -117,6 +112,7 @@ defmodule AshGleam.Marshal do
     case AshGleam.TypeMapper.normalize(type, constraints) do
       {:ok, {:scalar, _}} -> value
       {:ok, {:atom_enum, _}} -> value
+      {:ok, {:reusable_union, _, variants}} -> union_to_gleam(value, variants)
       {:ok, {:resource, resource}} -> to_gleam(resource, value)
       :error -> raise ArgumentError, "unsupported type #{inspect(type)}"
     end
@@ -128,9 +124,85 @@ defmodule AshGleam.Marshal do
     case AshGleam.TypeMapper.normalize(type, constraints) do
       {:ok, {:scalar, _}} -> value
       {:ok, {:atom_enum, _}} -> value
+      {:ok, {:reusable_union, _, variants}} -> union_from_gleam(value, variants)
       {:ok, {:resource, resource}} -> from_gleam(resource, value)
       :error -> raise ArgumentError, "unsupported type #{inspect(type)}"
     end
+  end
+
+  defp union_to_gleam(value, variants) when is_atom(value) do
+    variant = fetch_union_variant!(variants, value)
+
+    case variant.fields do
+      [] -> value
+      _ -> raise ArgumentError, "expected tuple payload for variant #{inspect(value)}"
+    end
+  end
+
+  defp union_to_gleam(value, variants) when is_tuple(value) do
+    [type | payload] = Tuple.to_list(value)
+    variant = fetch_union_variant!(variants, type)
+    encoded = encode_union_payload(payload, variant.fields)
+
+    List.to_tuple([type | encoded])
+  end
+
+  defp union_to_gleam(value, _variants) do
+    raise ArgumentError, "expected atom or tagged tuple for reusable union value, got: #{inspect(value)}"
+  end
+
+  defp union_from_gleam(value, variants) when is_atom(value) do
+    variant = fetch_union_variant!(variants, value)
+
+    case variant.fields do
+      [] -> value
+      _ -> raise ArgumentError, "expected tuple payload for variant #{inspect(value)}"
+    end
+  end
+
+  defp union_from_gleam(value, variants) when is_tuple(value) do
+    [type | payload] = Tuple.to_list(value)
+    variant = fetch_union_variant!(variants, type)
+    decoded = decode_union_payload(payload, variant.fields)
+
+    List.to_tuple([type | decoded])
+  end
+
+  defp union_from_gleam(value, _variants) do
+    raise ArgumentError, "expected atom or tagged tuple for reusable union value, got: #{inspect(value)}"
+  end
+
+  defp encode_union_payload(values, fields) when length(values) == length(fields) do
+    Enum.zip_with(values, fields, fn value, field ->
+      input!(field.type, value,
+        allow_nil?: field.allow_nil?,
+        constraints: field.constraints
+      )
+    end)
+  end
+
+  defp encode_union_payload(values, fields) do
+    raise ArgumentError,
+          "expected #{length(fields)} payload value(s), got #{length(values)}: #{inspect(values)}"
+  end
+
+  defp decode_union_payload(values, fields) when length(values) == length(fields) do
+    Enum.zip_with(values, fields, fn value, field ->
+      output!(field.type, value,
+        allow_nil?: field.allow_nil?,
+        constraints: field.constraints
+      )
+    end)
+  end
+
+  defp decode_union_payload(values, fields) do
+    raise ArgumentError,
+          "expected #{length(fields)} payload value(s), got #{length(values)}: #{inspect(values)}"
+  end
+
+  defp fetch_union_variant!(variants, type) do
+    Enum.find(variants, &(&1.name == type)) ||
+      raise ArgumentError, "unknown union variant #{inspect(type)}"
   end
 
   defp build_resource_map(resource, values) when is_atom(resource),

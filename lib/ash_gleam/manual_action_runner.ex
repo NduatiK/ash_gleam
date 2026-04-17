@@ -34,11 +34,7 @@ defmodule AshGleam.ManualActionRunner do
   end
 
   defp decode_result({:ok, value}, config) do
-    {:ok,
-     AshGleam.Marshal.output!(config.return_type, value,
-       allow_nil?: config.allow_nil?,
-       constraints: config.constraints
-     )}
+    decode_plain_result(value, config)
   end
 
   defp decode_result({:error, error}, _config) do
@@ -46,6 +42,10 @@ defmodule AshGleam.ManualActionRunner do
   end
 
   defp decode_result(value, config) do
+    decode_plain_result(value, config)
+  end
+
+  defp decode_plain_result(value, config) do
     {:ok,
      AshGleam.Marshal.output!(config.return_type, value,
        allow_nil?: config.allow_nil?,

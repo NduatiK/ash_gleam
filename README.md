@@ -41,7 +41,6 @@ The generated files live in a configurable output directory (default `lib/ash_gl
 | `{:array, t}` | `List(T)` |
 | Any resource with `AshGleam.Resource` | Named record type |
 | `Ash.Type.Enum` module | Generated Gleam union type |
-| `Ash.Type.NewType` wrapping `:union` | Generated Gleam union type with payloads |
 | `allow_nil?: true` on any of the above | `Option(T)` |
 
 Embedded resources (`:embedded` data layer) with the `AshGleam.Resource` extension are fully supported, including as array fields (`{:array, EmbeddedResource}`).
@@ -219,7 +218,11 @@ You can define Gleam-facing sum types once on the Elixir side and reuse them in 
 
 ```elixir
 defmodule MyApp.Mark do
-  use Ash.Type.Enum, values: [:x, :o, :empty]
+  use AshSumType
+  
+  variant :x
+  variant :o
+  variant :empty
 end
 
 defmodule MyApp.Board do
@@ -251,14 +254,15 @@ Use a named `Ash.Type.NewType` over `:union` when you want constructors that car
 
 ```elixir
 defmodule MyApp.LookupOutcome do
-  use Ash.Type.NewType,
-    subtype_of: :union,
-    constraints: [
-      types: [
-        found: [type: Ash.Type.Struct, constraints: [instance_of: MyApp.Todo]],
-        missing: [type: :string]
-      ]
-    ]
+  use AshSumType
+  
+  variant :found do
+    field :value, MyApp.Todo
+  end
+  
+  variant :missing do
+    field :error, :string
+  end
 end
 ```
 
@@ -266,8 +270,8 @@ That maps to a generated Gleam union like:
 
 ```gleam
 pub type LookupOutcome {
-  Found(Todo)
-  Missing(String)
+  Found(value: Todo)
+  Missing(error: String)
 }
 ```
 

@@ -96,6 +96,20 @@ defmodule AshGleam.Transformers.GenerateManualActions do
     "unsupported argument type #{inspect(type)}; atom argument types require constraints like `constraints one_of: [:x, :o, :empty]`"
   end
 
+  defp unsupported_type_message(type, constraints, kind) when is_atom(type) do
+    label =
+      case kind do
+        :return -> "return type"
+        :argument -> "argument type"
+      end
+
+    if Code.ensure_loaded?(type) and function_exported?(type, :variants, 0) do
+      "unsupported #{label} #{inspect(type)}; reusable types must be `AshSumType` modules, and their payload types must also be AshGleam-supported. constraints: #{inspect(constraints)}"
+    else
+      "unsupported #{label} #{inspect(type)} with constraints #{inspect(constraints)}"
+    end
+  end
+
   defp unsupported_type_message(type, constraints, kind) do
     label =
       case kind do

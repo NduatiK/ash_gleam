@@ -170,10 +170,20 @@ defmodule AshGleam.RuntimeTest do
     assert AshGleam.Marshal.input!(AshGleam.TestMark, :x, allow_nil?: false) == :x
     assert AshGleam.Marshal.output!(AshGleam.TestMark, :o, allow_nil?: false) == :o
 
-    assert AshGleam.Marshal.output!(AshGleam.TestWinner, {:player, :x}, allow_nil?: false) ==
+    assert AshGleam.Marshal.input!(AshGleam.TestWinner, :draw, allow_nil?: false) == :draw
+    assert AshGleam.Marshal.input!(AshGleam.TestWinner, {:player, :x}, allow_nil?: false) ==
              {:player, :x}
 
-    union = %Ash.Union{type: :missing, value: "not found"}
+    assert AshGleam.Marshal.output!(AshGleam.TestWinner, :draw, allow_nil?: false) == :draw
+
+    assert AshGleam.Marshal.output!(AshGleam.TestWinner, {:player, :x}, allow_nil?: false) ==
+             {:player, :x}
+  end
+
+  test "gleam actions accept and return ash_sum_type values" do
+    assert {:ok, :draw} = AshGleam.TestTodo.announce_winner(%{winner: :draw})
+    assert {:ok, {:player, :o}} = AshGleam.TestTodo.announce_winner(%{winner: {:player, :o}})
+    assert {:ok, {:player, :x}} = AshGleam.TestTodo.default_winner(%{})
   end
 
   test "marshal round-trips atom enum fields on resources" do

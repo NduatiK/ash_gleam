@@ -1,15 +1,13 @@
 import gleam/list
+
+import test_generated/src/ash_gleam/test_mark.{type TestMark, Empty}
+import test_generated/src/ash_gleam/test_player.{X}
+import test_generated/src/ash_gleam/test_winner.{type TestWinner, Player}
 import test_generated/src/destroy_todo
 import test_generated/src/first_completed_todo
 import test_generated/src/project_item.{type Project, Project}
 import test_generated/src/task.{Task}
 import test_generated/src/todo_item.{type Todo, Todo}
-
-pub type Mark {
-  X
-  O
-  Empty
-}
 
 pub fn mark_completed(item: Todo) -> Todo {
   Todo(..item, completed: True)
@@ -43,8 +41,16 @@ pub fn delete_from_elixir(todo_item: Todo) -> Result(Bool, String) {
   |> destroy_todo.run
 }
 
-pub fn next_mark() -> Mark {
+pub fn next_mark() -> TestMark {
   Empty
+}
+
+pub fn announce_winner(winner: TestWinner) -> TestWinner {
+  winner
+}
+
+pub fn default_winner() -> TestWinner {
+  Player(X)
 }
 
 pub fn complete_all_tasks(project: Project) -> Project {

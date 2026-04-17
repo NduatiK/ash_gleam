@@ -12,9 +12,17 @@ defmodule AshGleam.Codegen.Renderer do
   def render(manifest, opts \\ []) do
     prefix = AshGleam.Info.gleam_module_prefix(opts)
 
+    reusable_type_modules =
+      Enum.map(manifest.reusable_types, fn {_name, reusable_type} ->
+        %{
+          path: "#{reusable_type.module_name}.gleam",
+          contents: render_reusable_type_module(reusable_type, manifest.reusable_types, prefix)
+        }
+      end)
+
     resource_modules =
       Enum.flat_map(manifest.resources, fn {_name, resource} ->
-        render_resource_files(resource, prefix)
+        render_resource_files(resource, manifest.reusable_types, prefix)
       end)
 
     ffi_modules =
@@ -36,13 +44,13 @@ defmodule AshGleam.Codegen.Renderer do
         }
       end)
 
-    %{gleam: resource_modules ++ ffi_modules, elixir: elixir}
+    %{gleam: reusable_type_modules ++ resource_modules ++ ffi_modules, elixir: elixir}
   end
 
-  defp render_resource_files(resource, prefix) do
+  defp render_resource_files(resource, reusable_types, prefix) do
     atom_modules =
       resource.fields
-      |> atom_type_definitions()
+      |> inline_atom_type_definitions()
       |> Enum.map(fn %{module_name: module_name, definition: definition} ->
         %{
           path: "#{module_name}.gleam",
@@ -51,13 +59,81 @@ defmodule AshGleam.Codegen.Renderer do
       end)
 
     atom_modules ++
-      [%{path: "#{resource.module_name}.gleam", contents: render_resource(resource, prefix)}]
+      [
+        %{
+          path: "#{resource.module_name}.gleam",
+          contents: render_resource(resource, reusable_types, prefix)
+        }
+      ]
   end
 
   defp render_atom_type_module(_resource, _prefix, %{name: type_name, variants: variants}) do
     """
     pub type #{type_name} {
     #{Enum.map_join(variants, "\n", fn variant -> "  #{variant}" end)}
+    }
+    """
+  end
+
+  defp render_reusable_type_module(
+         %{kind: :enum, gleam_type: type_name, variants: variants},
+         _reusable_types,
+         _prefix
+       ) do
+    render_atom_type_module(nil, nil, %{
+      name: type_name,
+      variants: Enum.map(variants, &atom_variant!(&1.name))
+    })
+  end
+
+  defp render_reusable_type_module(%{kind: :union} = reusable_type, reusable_types, prefix) do
+    imports =
+      reusable_type.variants
+      |> Enum.flat_map(fn variant ->
+        Enum.flat_map(variant.fields, &direct_resource_modules(&1.type, &1.constraints))
+      end)
+      |> Enum.uniq()
+      |> Enum.map_join("\n", fn mod ->
+        type_name = AshGleam.Resource.Info.gleam_type_name!(mod)
+        module_name = AshGleam.Resource.Info.gleam_module_name(mod)
+        "import #{prefix}/#{module_name}.{type #{type_name}}"
+      end)
+
+    shared_imports =
+      reusable_type.variants
+      |> Enum.flat_map(fn variant ->
+        Enum.flat_map(variant.fields, &direct_reusable_type_modules(&1.type, &1.constraints))
+      end)
+      |> Enum.uniq()
+      |> Enum.reject(&(&1 == reusable_type.module))
+      |> Enum.map_join("\n", fn mod ->
+        definition = reusable_types[inspect(mod)]
+        "import #{prefix}/#{definition.module_name}.{type #{definition.gleam_type}}"
+      end)
+
+    joined_imports = join_imports(imports, shared_imports)
+
+    definitions =
+      Enum.map_join(reusable_type.variants, "\n", fn variant ->
+        variant_name = atom_variant!(variant.name)
+        payload =
+          Enum.map_join(variant.fields, ", ", fn field ->
+            gleam_type_for_type(field.type, field.constraints, field.allow_nil?, field.name)
+          end)
+
+        case variant.fields do
+          [] ->
+            "  #{variant_name}"
+
+          _ ->
+            "  #{variant_name}(#{payload})"
+        end
+      end)
+
+    """
+    #{if(String.contains?(definitions, "Option("), do: "import gleam/option.{type Option}", else: "")}
+    #{joined_imports}pub type #{reusable_type.gleam_type} {
+    #{definitions}
     }
     """
   end
@@ -95,6 +171,12 @@ defmodule AshGleam.Codegen.Renderer do
   defp atom_type_definitions(fields) do
     fields
     |> Enum.flat_map(&field_atom_type_definition/1)
+    |> Enum.uniq_by(& &1.module_name)
+  end
+
+  defp inline_atom_type_definitions(fields) do
+    fields
+    |> Enum.flat_map(&field_inline_atom_type_definition/1)
     |> Enum.uniq_by(& &1.module_name)
   end
 
@@ -144,20 +226,28 @@ defmodule AshGleam.Codegen.Renderer do
     []
   end
 
+  defp field_inline_atom_type_definition(%{type: type})
+       when type not in [:atom, Ash.Type.Atom, {:array, :atom}, {:array, Ash.Type.Atom}],
+       do: []
+
+  defp field_inline_atom_type_definition(%{type: type, constraints: constraints} = field) do
+    case AshGleam.TypeMapper.reusable_type_module(type, constraints) do
+      {:ok, _module} -> []
+      :error -> field_atom_type_definition(field)
+    end
+  end
+
   defp atom_variant!(value) when is_atom(value), do: value |> Atom.to_string() |> Macro.camelize()
 
   # Returns the resource module(s) referenced by a field's type.
   defp field_resource_modules(%{type: type, constraints: constraints}) do
-    case AshGleam.TypeMapper.normalize(type, constraints) do
-      {:ok, {:resource, mod}} -> [mod]
-      {:ok, {:array, {:resource, mod}}} -> [mod]
-      _ -> []
-    end
+    direct_resource_modules(type, constraints)
   end
 
-  defp render_resource(resource, prefix) do
+  defp render_resource(resource, reusable_types, prefix) do
     imports = resource_imports(resource.fields, prefix, resource.module)
     atom_imports = atom_type_imports(resource, resource.fields, prefix)
+    reusable_imports = reusable_type_imports(resource.fields, reusable_types, prefix)
 
     fields =
       Enum.map_join(resource.fields, ",\n", fn field ->
@@ -205,7 +295,7 @@ defmodule AshGleam.Codegen.Renderer do
 
     """
     #{if(String.contains?(fields, "Option("), do: "import gleam/option.{type Option}", else: "")}
-    #{imports}#{atom_imports}pub type #{resource.gleam_type} {
+    #{imports}#{atom_imports}#{reusable_imports}pub type #{resource.gleam_type} {
       #{resource.gleam_type}(
     #{fields}
       )
@@ -245,6 +335,7 @@ defmodule AshGleam.Codegen.Renderer do
 
         extra_imports = resource_imports(create_fields, prefix, resource.module)
         atom_imports = atom_type_imports(resource, create_fields, prefix)
+        reusable_imports = reusable_type_imports(create_fields, %{}, prefix)
 
         fields =
           Enum.map_join(create_fields, ",\n", fn field ->
@@ -261,7 +352,7 @@ defmodule AshGleam.Codegen.Renderer do
 
         """
         import #{resource_import}.{type #{resource_type}}
-        #{extra_imports}#{atom_imports}pub type #{action_module} {
+        #{extra_imports}#{atom_imports}#{reusable_imports}pub type #{action_module} {
           #{action_module}(
         #{fields}
           )
@@ -277,6 +368,7 @@ defmodule AshGleam.Codegen.Renderer do
 
       :get ->
         atom_imports = atom_type_imports(resource, ffi.arguments, prefix)
+        reusable_imports = reusable_type_imports(ffi.arguments, %{}, prefix)
 
         args =
           Enum.map_join(ffi.arguments, ", ", fn argument ->
@@ -309,7 +401,7 @@ defmodule AshGleam.Codegen.Renderer do
 
         """
         import #{resource_import}.{type #{resource_type}}
-        #{atom_imports}
+        #{atom_imports}#{reusable_imports}
         pub type #{action_module} {
           #{type_definition}
         }
@@ -492,31 +584,90 @@ defmodule AshGleam.Codegen.Renderer do
   end
 
   defp gleam_type!(%{name: field_name, type: type, constraints: constraints}, allow_nil?) do
+    gleam_type_for_type(type, constraints, allow_nil?, field_name)
+  end
+
+  defp gleam_type!(%{name: field_name, type: type}, allow_nil?) do
+    gleam_type_for_type(type, [], allow_nil?, field_name)
+  end
+
+  defp gleam_type!(type, allow_nil?) do
+    gleam_type_for_type(type, [], allow_nil?, nil)
+  end
+
+  defp gleam_type_for_type(type, constraints, allow_nil?, name) do
     {:ok, type_name} =
       AshGleam.TypeMapper.gleam_type(type,
         allow_nil?: allow_nil?,
         constraints: constraints,
-        name: field_name
+        name: name
       )
 
     type_name
   end
 
-  defp gleam_type!(%{name: field_name, type: type}, allow_nil?) do
-    {:ok, type_name} =
-      AshGleam.TypeMapper.gleam_type(type,
-        allow_nil?: allow_nil?,
-        constraints: [],
-        name: field_name
-      )
-
-    type_name
+  defp reusable_type_imports(fields, reusable_types, prefix) do
+    fields
+    |> Enum.flat_map(fn field ->
+      type = Map.fetch!(field, :type)
+      constraints = Map.get(field, :constraints, [])
+      direct_reusable_type_modules(type, constraints)
+    end)
+    |> Enum.uniq()
+    |> Enum.map_join("\n", fn mod ->
+      definition = reusable_types[inspect(mod)] || reusable_type_definition(mod)
+      "import #{prefix}/#{definition.module_name}.{type #{definition.gleam_type}}"
+    end)
+    |> case do
+      "" -> ""
+      imports -> imports <> "\n"
+    end
   end
 
-  defp gleam_type!(type, allow_nil?) do
-    {:ok, type_name} =
-      AshGleam.TypeMapper.gleam_type(type, allow_nil?: allow_nil?, constraints: [])
+  defp reusable_type_definition(mod) do
+    {:ok, definition} = AshGleam.ReusableType.definition(mod)
+    %{module_name: definition.module_name, gleam_type: definition.gleam_type}
+  end
 
-    type_name
+  defp direct_reusable_type_modules({:array, inner}, constraints) do
+    item_constraints =
+      constraints
+      |> Keyword.get(:items, [])
+      |> List.wrap()
+
+    direct_reusable_type_modules(inner, item_constraints)
+  end
+
+  defp direct_reusable_type_modules(type, constraints) do
+    case AshGleam.TypeMapper.reusable_type_module(type, constraints) do
+      {:ok, module} -> [module]
+      :error -> []
+    end
+  end
+
+  defp direct_resource_modules({:array, inner}, constraints) do
+    item_constraints =
+      constraints
+      |> Keyword.get(:items, [])
+      |> List.wrap()
+
+    direct_resource_modules(inner, item_constraints)
+  end
+
+  defp direct_resource_modules(type, constraints) do
+    case AshGleam.TypeMapper.normalize(type, constraints) do
+      {:ok, {:resource, mod}} -> [mod]
+      _ -> []
+    end
+  end
+
+  defp join_imports(left, right) do
+    [left, right]
+    |> Enum.reject(&(&1 == ""))
+    |> Enum.join("\n")
+    |> case do
+      "" -> ""
+      imports -> imports <> "\n"
+    end
   end
 end

@@ -120,16 +120,14 @@ defmodule AshGleam.ValidationTest do
             private? true
           end
 
-          attributes do
-            uuid_primary_key :id
-          end
+          gleam do
+            actions do
+              action :broken, :integer do
+                argument :a, :integer, allow_nil?: false
+                argument :b, :integer, allow_nil?: false
 
-          gleam_actions do
-            action :broken, :integer do
-              argument :a, :integer, allow_nil?: false
-              argument :b, :integer, allow_nil?: false
-
-              run &:test_gleam.mark_completed/1
+                run &:test_gleam.mark_completed/1
+              end
             end
           end
         end
@@ -169,20 +167,24 @@ defmodule AshGleam.ValidationTest do
             otp_app: :ash_gleam,
             domain: unquote(domain),
             data_layer: Ash.DataLayer.Ets,
-            extensions: [AshGleam.Actions]
+            extensions: [AshGleam.Resource, AshGleam.Actions]
 
           ets do
             private? true
           end
 
-          attributes do
-            uuid_primary_key :id
+          gleam do
+            type_name "AtomReturn"
+
+            actions do
+              action :broken, :atom do
+                run &:test_gleam.next_mark/0
+              end
+            end
           end
 
-          gleam_actions do
-            action :broken, :atom do
-              run &:test_gleam.next_mark/0
-            end
+          attributes do
+            uuid_primary_key :id
           end
         end
       end
@@ -216,21 +218,25 @@ defmodule AshGleam.ValidationTest do
             otp_app: :ash_gleam,
             domain: unquote(domain),
             data_layer: Ash.DataLayer.Ets,
-            extensions: [AshGleam.Actions]
+            extensions: [AshGleam.Resource, AshGleam.Actions]
 
           ets do
             private? true
           end
 
-          attributes do
-            uuid_primary_key :id
+          gleam do
+            type_name "AtomArgument"
+
+            actions do
+              action :broken, :integer do
+                argument :mark, :atom, allow_nil?: false
+                run &:erlang.abs/1
+              end
+            end
           end
 
-          gleam_actions do
-            action :broken, :integer do
-              argument :mark, :atom, allow_nil?: false
-              run &:erlang.abs/1
-            end
+          attributes do
+            uuid_primary_key :id
           end
         end
       end
@@ -242,5 +248,61 @@ defmodule AshGleam.ValidationTest do
                      Code.compile_quoted(quoted)
                    end)
                  end
+  end
+
+  test "resource validation rejects unsupported reusable types" do
+    suffix = System.unique_integer([:positive])
+    domain = Module.concat([AshGleam, Dynamic, :"UnsupportedReusableDomain#{suffix}"])
+    type = Module.concat([AshGleam, Dynamic, :"UnsupportedReusableType#{suffix}"])
+    resource = Module.concat([AshGleam, Dynamic, :"UnsupportedReusableResource#{suffix}"])
+
+    quoted =
+      quote do
+        defmodule unquote(type) do
+          use Ash.Type.NewType, subtype_of: :map
+        end
+
+        defmodule unquote(domain) do
+          use Ash.Domain, otp_app: :ash_gleam
+
+          resources do
+            resource unquote(resource)
+          end
+        end
+
+        defmodule unquote(resource) do
+          use Ash.Resource,
+            otp_app: :ash_gleam,
+            domain: unquote(domain),
+            data_layer: Ash.DataLayer.Ets,
+            extensions: [AshGleam.Resource]
+
+          ets do
+            private? true
+          end
+
+          gleam do
+            type_name "BrokenReusable"
+          end
+
+          attributes do
+            uuid_primary_key :id
+            attribute :status, unquote(type), public?: true
+          end
+        end
+      end
+
+    output =
+      capture_io(:stderr, fn ->
+        compiled = Code.compile_quoted(quoted)
+        assert length(compiled) >= 3
+      end)
+
+    assert output =~ "Ash.Type.NewType"
+    assert output =~ "wrapping `:union`"
+  end
+
+  test "gleam action validation accepts supported reusable types" do
+    assert :ok = AshGleam.Transformers.ValidateGleamActions.verify(AshGleam.TestTodo)
   end
 end

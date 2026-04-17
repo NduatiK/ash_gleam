@@ -1,3 +1,7 @@
 defmodule AshGleam.TestMark do
-  use Ash.Type.Enum, values: [:x, :o, :empty]
+  use AshSumType
+
+  variant :x
+  variant :o
+  variant :empty
 end

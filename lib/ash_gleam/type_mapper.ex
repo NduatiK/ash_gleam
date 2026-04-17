@@ -22,6 +22,7 @@ defmodule AshGleam.TypeMapper do
     case normalize(type, constraints) do
       {:ok, {:scalar, _}} -> true
       {:ok, {:atom_enum, _}} -> true
+      {:ok, {:reusable_union, _, variants}} -> Enum.all?(variants, &supported_union_variant?/1)
       {:ok, {:array, inner}} -> supported?(inner)
       {:ok, {:resource, module}} -> ash_gleam_resource?(module)
       :error -> false
@@ -33,6 +34,7 @@ defmodule AshGleam.TypeMapper do
   # Pass-through for already-normalized forms produced by recursive normalize calls.
   def normalize({:scalar, _} = normalized, _constraints), do: {:ok, normalized}
   def normalize({:atom_enum, _} = normalized, _constraints), do: {:ok, normalized}
+  def normalize({:reusable_union, _, _} = normalized, _constraints), do: {:ok, normalized}
   def normalize({:resource, _} = normalized, _constraints), do: {:ok, normalized}
 
   def normalize({:array, inner}, constraints) do
@@ -66,6 +68,15 @@ defmodule AshGleam.TypeMapper do
       mapped = @scalar_type_modules[type] ->
         {:ok, {:scalar, mapped}}
 
+      type == Ash.Type.Struct and ash_gleam_resource?(Keyword.get(constraints, :instance_of)) ->
+        {:ok, {:resource, Keyword.fetch!(constraints, :instance_of)}}
+
+      AshGleam.ReusableType.union?(type) ->
+        case AshGleam.ReusableType.definition(type) do
+          {:ok, %{variants: variants}} -> {:ok, {:reusable_union, type, variants}}
+          :error -> :error
+        end
+
       ash_gleam_resource?(type) ->
         {:ok, {:resource, type}}
 
@@ -85,6 +96,9 @@ defmodule AshGleam.TypeMapper do
       {:ok, {:atom_enum, values}} ->
         {:ok, {:atom, one_of: values}}
 
+      {:ok, {:reusable_union, module, _variants}} ->
+        {:ok, {module, []}}
+
       {:ok, {:array, inner}} ->
         item_constraints =
           constraints
@@ -92,7 +106,13 @@ defmodule AshGleam.TypeMapper do
           |> List.wrap()
 
         with {:ok, {inner_type, inner_constraints}} <- ash_type(inner, item_constraints) do
-          {:ok, {{:array, inner_type}, items: inner_constraints}}
+          array_constraints =
+            case inner_constraints do
+              [] -> []
+              _ -> [items: inner_constraints]
+            end
+
+          {:ok, {{:array, inner_type}, array_constraints}}
         end
 
       {:ok, {:resource, module}} ->
@@ -142,6 +162,9 @@ defmodule AshGleam.TypeMapper do
       {:ok, {:atom_enum, values}} ->
         {:ok, gleam_atom_enum_type_name(name, values)}
 
+      {:ok, {:reusable_union, module, _variants}} ->
+        {:ok, AshGleam.ReusableType.type_name(module)}
+
       {:ok, {:array, inner}} ->
         item_constraints =
           constraints
@@ -161,6 +184,24 @@ defmodule AshGleam.TypeMapper do
 
   defp maybe_option(inner, true), do: "Option(#{inner})"
   defp maybe_option(inner, false), do: inner
+
+  defp supported_union_variant?(%{fields: fields}) do
+    Enum.all?(fields, fn field ->
+      supported_union_payload?(field.type, field.constraints)
+    end)
+  end
+
+  defp supported_union_payload?(type, constraints) do
+    case normalize(type, constraints) do
+      {:ok, {:scalar, _}} -> true
+      {:ok, {:reusable_union, _, variants}} -> Enum.all?(variants, &supported_union_variant?/1)
+      {:ok, {:array, inner}} -> supported_union_payload?(inner, [])
+      {:ok, {:resource, _}} -> true
+      {:ok, {:atom_enum, []}} -> false
+      {:ok, {:atom_enum, _}} -> true
+      :error -> false
+    end
+  end
 
   defp normalize_atom_type(type, constraints) do
     case Keyword.take(constraints, @type_constraints) do
@@ -187,6 +228,45 @@ defmodule AshGleam.TypeMapper do
     |> Enum.reject(&is_nil/1)
     |> Enum.map(&(&1 |> Atom.to_string() |> Macro.camelize()))
     |> Enum.join()
+  end
+
+  @spec named_union?(term(), Keyword.t()) :: boolean()
+  def named_union?(type, constraints \\ []) do
+    match?({:ok, {:reusable_union, _, _}}, normalize(type, constraints))
+  end
+
+  @spec reusable_type_module(term(), Keyword.t()) :: {:ok, module()} | :error
+  def reusable_type_module(type, constraints \\ []) do
+    case normalize(type, constraints) do
+      {:ok, {:reusable_union, module, _}} -> {:ok, module}
+      {:ok, {:array, inner}} -> reusable_type_module(inner)
+      _ -> :error
+    end
+  end
+
+  @spec reusable_type_modules(term(), Keyword.t()) :: [module()]
+  def reusable_type_modules(type, constraints \\ []) do
+    case normalize(type, constraints) do
+      {:ok, {:reusable_union, module, variants}} ->
+        nested =
+          Enum.flat_map(variants, fn variant ->
+            Enum.flat_map(variant.fields, &reusable_type_modules(&1.type, &1.constraints))
+          end)
+
+        [module | nested]
+
+      {:ok, {:array, inner}} ->
+        item_constraints =
+          constraints
+          |> Keyword.get(:items, [])
+          |> List.wrap()
+
+        reusable_type_modules(inner, item_constraints)
+
+      _ ->
+        []
+    end
+    |> Enum.uniq()
   end
 
   @spec scalar_types() :: [atom()]

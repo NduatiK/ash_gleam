@@ -56,6 +56,14 @@ defmodule AshGleam.Transformers.ValidateGleamActions do
     "Unsupported #{label} #{inspect(type)} in gleam.actions. Atom argument types require constraints like `constraints one_of: [:x, :o, :empty]`."
   end
 
+  defp unsupported_type_message(type, constraints, label) when is_atom(type) do
+    if Code.ensure_loaded?(type) and function_exported?(type, :variants, 0) do
+      "Unsupported #{label} #{inspect(type)} in gleam.actions. Reusable types must be `AshSumType` modules, and their payload types must also be AshGleam-supported. Constraints: #{inspect(constraints)}"
+    else
+      "Unsupported #{label} #{inspect(type)} with constraints #{inspect(constraints)} in gleam.actions"
+    end
+  end
+
   defp unsupported_type_message(type, constraints, label) do
     "Unsupported #{label} #{inspect(type)} with constraints #{inspect(constraints)} in gleam.actions"
   end
