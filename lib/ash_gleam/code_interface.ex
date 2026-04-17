@@ -20,7 +20,7 @@ defmodule AshGleam.CodeInterface do
       changes = AshGleam.Diff.resource_changes(record, proposed)
 
       record
-      |> Ash.Changeset.for_update(ash_action_name, changes)
+      |> Ash.Changeset.for_update(ash_action_name, changes, action_opts)
       |> Ash.update(action_opts)
     end
   end

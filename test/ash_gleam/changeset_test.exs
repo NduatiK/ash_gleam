@@ -25,7 +25,8 @@ defmodule AshGleam.ChangesetTest do
       |> Ash.Changeset.for_create(:create, %{title: "Ship it"})
       |> Ash.create!()
 
-    changeset = AshGleam.Changeset.for_update(todo, :mark_completed, %{}, action: :update)
+    assert {:ok, changeset} =
+             AshGleam.Changeset.for_update(todo, :mark_completed, %{}, action: :update)
 
     assert %Ash.Changeset{valid?: true} = changeset
     assert Ash.Changeset.get_attribute(changeset, :completed) == true
@@ -39,10 +40,10 @@ defmodule AshGleam.ChangesetTest do
 
     assert todo.completed == false
 
-    persisted =
-      todo
-      |> AshGleam.Changeset.for_update(:mark_completed, %{}, action: :update)
-      |> Ash.update!()
+    assert {:ok, changeset} =
+             AshGleam.Changeset.for_update(todo, :mark_completed, %{}, action: :update)
+
+    persisted = Ash.update!(changeset)
 
     assert persisted.completed == true
     assert persisted.id == todo.id
@@ -54,7 +55,8 @@ defmodule AshGleam.ChangesetTest do
       |> Ash.Changeset.for_create(:create, %{title: "Diff me", completed: false})
       |> Ash.create!()
 
-    changeset = AshGleam.Changeset.for_update(todo, :mark_completed, %{}, action: :update)
+    assert {:ok, changeset} =
+             AshGleam.Changeset.for_update(todo, :mark_completed, %{}, action: :update)
 
     assert changeset.attributes == %{completed: true}
   end
@@ -98,7 +100,8 @@ defmodule AshGleam.ChangesetTest do
       |> Ash.Changeset.for_create(:create, %{title: "Inspect me"})
       |> Ash.create!()
 
-    changeset = AshGleam.Changeset.for_update(todo, :mark_completed, %{}, action: :update)
+    assert {:ok, changeset} =
+             AshGleam.Changeset.for_update(todo, :mark_completed, %{}, action: :update)
 
     assert %Ash.Changeset{} = changeset
     assert changeset.data.id == todo.id

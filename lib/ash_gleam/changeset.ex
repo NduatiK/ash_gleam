@@ -20,18 +20,24 @@ defmodule AshGleam.Changeset do
       |> AshGleam.Changeset.for_update(:mark_completed, %{}, action: :update)
       |> Ash.update!()
   """
-  @spec for_update(struct(), atom(), map(), Keyword.t()) :: Ash.Changeset.t()
+  @spec for_update(struct(), atom(), map(), Keyword.t()) ::
+          {:ok, Ash.Changeset.t()} | {:error, term()}
   def for_update(record, gleam_action_name, params \\ %{}, opts) do
     ash_action_name = Keyword.fetch!(opts, :action)
     resource = record.__struct__
 
     fetch_update_action!(resource, gleam_action_name)
 
-    {:ok, proposed} = invoke_gleam_action(resource, gleam_action_name, record, params, opts)
+    with {:ok, proposed} <- invoke_gleam_action(resource, gleam_action_name, record, params, opts) do
+      changes = AshGleam.Diff.resource_changes(record, proposed)
 
-    changes = AshGleam.Diff.resource_changes(record, proposed)
+      changeset_opts =
+        opts
+        |> Keyword.drop([:action])
+        |> Keyword.put_new(:domain, Ash.Resource.Info.domain(resource))
 
-    Ash.Changeset.for_update(record, ash_action_name, changes)
+      {:ok, Ash.Changeset.for_update(record, ash_action_name, changes, changeset_opts)}
+    end
   end
 
   defp fetch_update_action!(resource, gleam_action_name) do
