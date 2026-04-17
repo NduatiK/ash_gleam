@@ -361,7 +361,7 @@ You can define the equivalent to Gleam's custom types using `AshSumType` from [a
     </tr>
   </thead>
   <tbody>
-    <tr>
+    <tr style="background-color: var(--bgColor-muted,var(--color-canvas-subtle));">
 <td>
   
 ```elixir
@@ -382,7 +382,7 @@ pub type Mark {
 
 </td>
 </tr>
-<tr>
+<tr style="background-color: var(--bgColor-muted,var(--color-canvas-subtle));">
 <td>
 
 ```elixir
@@ -406,7 +406,7 @@ pub type Mark {
 
 </td>
 </tr>
-<tr>
+<tr style="background-color: var(--bgColor-muted,var(--color-canvas-subtle));">
 <td>
       
 ```elixir
