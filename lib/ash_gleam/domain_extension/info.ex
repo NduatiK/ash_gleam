@@ -7,6 +7,6 @@ defmodule AshGleam.DomainExtension.Info do
 
   @spec gleam_update_resources(module()) :: [AshGleam.Dsl.GleamUpdateResource.t()]
   def gleam_update_resources(domain) do
-    Spark.Dsl.Extension.get_entities(domain, [:gleam_updates])
+    Spark.Dsl.Extension.get_entities(domain, [:gleam, :code_interface])
   end
 end
