@@ -8,14 +8,17 @@ defmodule AshGleam.MixProject do
   @app :ash_gleam
   @version "0.1.0"
 
-  # @description """
-  # Generate type-safe Gleam clients directly from your Ash resources and actions, ensuring end-to-end type safety between your backend and frontend.
-  # """
+  @description """
+  Generate type-safe Gleam clients directly from your Ash resources and actions, ensuring end-to-end type safety between your backend and frontend.
+  """
 
   def project do
     [
       app: @app,
+      description: @description,
       version: @version,
+      package: package(),
+      #
       elixir: "~> 1.15",
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
@@ -63,11 +66,24 @@ defmodule AshGleam.MixProject do
     ]
   end
 
+  defp package do
+    [
+      maintainers: [
+        "Nduati Kuria"
+      ],
+      licenses: ["MIT"],
+      files: ~w(lib .formatter.exs mix.exs README*),
+      links: %{
+        "GitHub" => "https://github.com/NduatiK/ash_gleam"
+      }
+    ]
+  end
+
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
       {:ash, "~> 3.2 and >= 3.21.1"},
-      {:ash_sum_type, "~> 1.0.0"},
+      {:ash_sum_type, "~> 1.0.2"},
       {:gleam_stdlib, "~> 0.62", only: [:test]},
       {:gleeunit, "~> 1.0", only: [:test], runtime: false},
       {:git_ops, "~> 2.0", only: [:dev], runtime: false},
