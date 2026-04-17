@@ -100,7 +100,6 @@ defmodule AshGleam.FFITest do
     |> Ash.create!()
 
     list_todos_module = AshGleam.GeneratedGleamHelper.module_atom("list_todos")
-    todo_item_module = AshGleam.GeneratedGleamHelper.module_atom("todo_item")
 
     builder =
       list_todos_module.new()
@@ -130,7 +129,6 @@ defmodule AshGleam.FFITest do
     |> Ash.create!()
 
     list_todos_module = AshGleam.GeneratedGleamHelper.module_atom("list_todos")
-    todo_item_module = AshGleam.GeneratedGleamHelper.module_atom("todo_item")
 
     builder =
       list_todos_module.new()
