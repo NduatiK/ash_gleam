@@ -105,10 +105,10 @@ defmodule AshGleam.FFITest do
     builder =
       list_todos_module.new()
       |> list_todos_module.filter([
-        todo_item_module.completed_eq(true)
+        {:completed_eq, true}
       ])
       |> list_todos_module.sort([
-        todo_item_module.title_asc()
+        {:title, :asc}
       ])
       |> list_todos_module.limit({:some, 1})
 
@@ -135,10 +135,10 @@ defmodule AshGleam.FFITest do
     builder =
       list_todos_module.new()
       |> list_todos_module.filter([
-        todo_item_module.title_eq("Filter target")
+        {:title_eq, "Filter target"}
       ])
       |> list_todos_module.sort([
-        todo_item_module.title_asc()
+        {:title, :asc}
       ])
       |> list_todos_module.limit(:none)
 
