@@ -402,11 +402,8 @@ Gleam actions can use the generated bridge modules to call Ash actions, enabling
 import myapp/generated/src/first_completed_todo
 
 pub fn get_first_completed() -> Todo {
-  let assert Ok(todo_item) =
     first_completed_todo.new()
     |> first_completed_todo.run()
-
-    todo_item
 }
 ```
 
