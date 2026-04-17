@@ -475,10 +475,10 @@ def project do
       "deps.get": ["deps.get", "gleam.deps.get"]
     ],
     erlc_paths: [
-      "_build/dev/erlang/#{@app}/_gleam_artefacts",
-      "_build/dev/erlang/#{@app}/build"
+      "_build/dev/lib/#{@app}/_gleam_artefacts",
+      "_build/dev/lib/#{@app}/build"
     ],
-    erlc_include_path: "_build/dev/erlang/#{@app}/include",
+    erlc_include_path: "_build/dev/lib/#{@app}/include",
     prune_code_paths: false
   ]
 end
