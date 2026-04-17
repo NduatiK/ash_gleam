@@ -92,8 +92,8 @@ defmodule ExampleWeb.Example.GameLive do
 
   defp render_win(%TicTacToe{} = game) do
     case TicTacToe.win!(%{game: game}) do
-      :x -> "Game! X 🎉"
-      :o -> "Game! O 🎉"
+      {:player, :x} -> "Game! X 🎉"
+      {:player, :o} -> "Game! O 🎉"
       :draw -> "Draw"
       :none -> nil
     end

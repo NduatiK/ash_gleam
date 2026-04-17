@@ -40,7 +40,7 @@ The generated files live in a configurable output directory (default `lib/ash_gl
 | `:float`, `:decimal` | `Float` |
 | `{:array, t}` | `List(T)` |
 | Any resource with `AshGleam.Resource` | Named record type |
-| `Ash.Type.Enum` module | Generated Gleam union type |
+| `AshSumType` module | Generated Gleam union type |
 | `allow_nil?: true` on any of the above | `Option(T)` |
 
 Embedded resources (`:embedded` data layer) with the `AshGleam.Resource` extension are fully supported, including as array fields (`{:array, EmbeddedResource}`).
@@ -201,7 +201,7 @@ defmodule MyApp.Todo do
         run &:todo_logic.safe_add/2
       end
   
-      # Returns a reusable enum type
+      # Returns a reusable sum type
       action :next_mark, MyApp.Mark do
         run &:todo_logic.next_mark/0
       end
@@ -214,12 +214,12 @@ end
 
 You can define Gleam-facing sum types once on the Elixir side and reuse them in resource attributes and `gleam.actions`.
 
-### Reusable enums
+### Nullary sum types
 
 ```elixir
 defmodule MyApp.Mark do
   use AshSumType
-  
+
   variant :x
   variant :o
   variant :empty
@@ -246,22 +246,30 @@ defmodule MyApp.Board do
 end
 ```
 
-AshGleam will generate one shared Gleam type module for `MyApp.Mark` and reuse it everywhere instead of generating one type per field or action.
+AshGleam will generate one shared Gleam type module for `MyApp.Mark` and reuse it everywhere instead of generating one type per field or action:
 
-### Reusable unions with payloads
+```gleam
+pub type Mark {
+  X
+  O
+  Empty
+}
+```
 
-Use a named `Ash.Type.NewType` over `:union` when you want constructors that carry values:
+### Sum types with payloads
+
+Use `AshSumType` variants with carried fields when you want constructors that hold values:
 
 ```elixir
 defmodule MyApp.LookupOutcome do
   use AshSumType
-  
+
   variant :found do
-    field :value, MyApp.Todo
+    field :value, MyApp.Todo, allow_nil?: false
   end
-  
+
   variant :missing do
-    field :error, :string
+    field :error, :string, allow_nil?: false
   end
 end
 ```
@@ -270,12 +278,12 @@ That maps to a generated Gleam union like:
 
 ```gleam
 pub type LookupOutcome {
-  Found(value: Todo)
-  Missing(error: String)
+  Found(Todo)
+  Missing(String)
 }
 ```
 
-Action `Result(T, String)` behavior is unchanged. If a Gleam action returns `Result`, AshGleam still treats `{:ok, value}` / `{:error, error}` as the action success/error channel. Reusable named union values are regular data and are marshalled according to their declared return type.
+`AshSumType` values stay regular sum-type data across the boundary. Nullary variants map to atoms on the Elixir side, and payload variants map to tagged tuples in declared field order. Action `Result(T, String)` behavior is unchanged: if a Gleam action returns `Result`, AshGleam still treats `{:ok, value}` / `{:error, error}` as the action success/error channel.
 
 ### 3. Call it through Ash
 
@@ -284,6 +292,10 @@ todo = MyApp.Todo |> Ash.Changeset.for_create(:create, %{title: "Ship it"}) |> A
 
 {:ok, updated} = MyApp.Todo.mark_completed(%{todo: todo})
 updated.completed #=> true
+
+updated
+|> Ash.Changeset.for_update(:update, AshGleam.Diff.resource_changes(todo, updated))
+|> Ash.update!()
 
 {:ok, 5} = MyApp.Todo.safe_add(%{a: 2, b: 3})
 {:error, _} = MyApp.Todo.safe_add(%{a: -1, b: 3})

@@ -298,8 +298,7 @@ defmodule AshGleam.ValidationTest do
         assert length(compiled) >= 3
       end)
 
-    assert output =~ "Ash.Type.NewType"
-    assert output =~ "wrapping `:union`"
+    assert output =~ "AshSumType"
   end
 
   test "gleam action validation accepts supported reusable types" do
