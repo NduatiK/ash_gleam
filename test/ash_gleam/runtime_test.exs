@@ -171,6 +171,7 @@ defmodule AshGleam.RuntimeTest do
     assert AshGleam.Marshal.output!(AshGleam.TestMark, :o, allow_nil?: false) == :o
 
     assert AshGleam.Marshal.input!(AshGleam.TestWinner, :draw, allow_nil?: false) == :draw
+
     assert AshGleam.Marshal.input!(AshGleam.TestWinner, {:player, :x}, allow_nil?: false) ==
              {:player, :x}
 

@@ -11,6 +11,7 @@ spark_locals_without_parens = [
   argument_names: 1,
   constraints: 1,
   default: 1,
+  define_gleam_update: 2,
   delete: 1,
   delete: 2,
   denied_loads: 1,
@@ -39,25 +40,18 @@ spark_locals_without_parens = [
   publish: 2,
   put: 1,
   put: 2,
-  read_action: 1,
   resource: 1,
   resource: 2,
   route: 1,
   route: 2,
   route: 3,
-  rpc_action: 2,
-  rpc_action: 3,
   run: 1,
   see: 1,
   show_metadata: 1,
   show_raised_errors?: 1,
   topic: 1,
-  ts_fields_const_name: 1,
-  ts_result_type_name: 1,
   type_name: 1,
-  typed_query: 2,
-  typed_query: 3,
-  zod_schema_name: 1
+  update?: 1
 ]
 
 [

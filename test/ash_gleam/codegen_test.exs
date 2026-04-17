@@ -132,8 +132,22 @@ defmodule AshGleam.CodegenTest do
     assert File.read!(Path.join(gleam_src, "board.gleam"))
     winner_types = File.read!(Path.join(gleam_src, "winner.gleam"))
 
-    refute generated =~ "pub type CurrentPlayer {\n  X\n  O\n}"
-    refute generated =~ "pub type Winner {\n  X\n  O\n  Draw\n}"
+    refute generated =~
+             """
+             pub type CurrentPlayer {
+               X
+               O
+             }
+             """
+
+    refute generated =~
+             """
+             pub type Winner {
+               X
+               O
+               Draw
+             }
+             """
 
     assert generated =~
              "import #{AshGleam.Info.gleam_module_prefix(output: tmp)}/current_player.{type CurrentPlayer}"
@@ -144,8 +158,22 @@ defmodule AshGleam.CodegenTest do
     assert generated =~ "current_player: CurrentPlayer"
     assert generated =~ "winner: Option(Winner)"
 
-    assert current_player_types =~ "pub type CurrentPlayer {\n  X\n  O\n}"
-    assert winner_types =~ "pub type Winner {\n  X\n  O\n  Draw\n}"
+    assert current_player_types =~
+             """
+             pub type CurrentPlayer {
+               X
+               O
+             }
+             """
+
+    assert winner_types =~
+             """
+             pub type Winner {
+               X
+               O
+               Draw
+             }
+             """
   end
 
   test "codegen de-duplicates reusable sum type modules across resources and actions" do
@@ -246,9 +274,29 @@ defmodule AshGleam.CodegenTest do
     resource_two_source = File.read!(Path.join(gleam_src, "reusable_two.gleam"))
 
     assert File.exists?(enum_path)
-    assert File.read!(enum_path) =~ "pub type Mark#{suffix} {\n  A\n  B\n  C\n}"
-    assert resource_one_source =~ "/ash_gleam/dynamic/mark#{suffix}.{type Mark#{suffix}}"
-    assert resource_two_source =~ "/ash_gleam/dynamic/mark#{suffix}.{type Mark#{suffix}}"
+
+    assert File.read!(enum_path) =~
+             """
+             pub type Mark#{suffix} {
+               A
+               B
+               C
+             }
+             """
+
+    assert resource_one_source =~
+             """
+             /ash_gleam/dynamic/mark#{suffix}.{
+               type Mark#{suffix},
+             }
+             """
+
+    assert resource_two_source =~
+             """
+             /ash_gleam/dynamic/mark#{suffix}.{
+               type Mark#{suffix},
+             }
+             """
 
     assert [enum_path] ==
              Path.wildcard(Path.join(gleam_src, "**/mark#{suffix}.gleam"))
@@ -332,8 +380,21 @@ defmodule AshGleam.CodegenTest do
 
     assert File.exists?(winner_path)
     assert File.exists?(player_path)
-    assert File.read!(winner_path) =~ "pub type Winner#{suffix} {\n  Draw\n  Player(Player#{suffix})\n}"
-    assert resource_source =~ "/ash_gleam/dynamic/winner#{suffix}.{type Winner#{suffix}}"
+
+    assert File.read!(winner_path) =~
+             """
+             pub type Winner#{suffix} {
+               Draw
+               Player(Player#{suffix})
+             }
+             """
+
+    assert resource_source =~
+             """
+             /ash_gleam/dynamic/winner#{suffix}.{
+               type Winner#{suffix},
+             }
+             """
 
     assert [winner_path] ==
              Path.wildcard(Path.join(gleam_src, "**/winner#{suffix}.gleam"))
@@ -450,7 +511,15 @@ defmodule AshGleam.CodegenTest do
              "import #{AshGleam.Info.gleam_module_prefix(output: tmp)}/board.{type Board}"
 
     assert generated =~ "board: List(Board)"
-    assert board_types =~ "pub type Board {\n  X\n  O\n  Empty\n}"
+
+    assert board_types =~
+             """
+             pub type Board {
+               X
+               O
+               Empty
+             }
+             """
   end
 
   test "test env codegen defaults write under test/generated/ash_gleam" do

@@ -15,7 +15,8 @@ defmodule AshGleam.CodeInterface do
     first_arg_name = first_arg_name!(resource, gleam_action_name)
     action_params = Map.put(params, first_arg_name, record)
 
-    with {:ok, proposed} <- run_gleam_action(resource, gleam_action_name, action_params, action_opts) do
+    with {:ok, proposed} <-
+           run_gleam_action(resource, gleam_action_name, action_params, action_opts) do
       changes = AshGleam.Diff.resource_changes(record, proposed)
 
       record

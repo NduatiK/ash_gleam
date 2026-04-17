@@ -182,15 +182,20 @@ if Code.ensure_loaded?(Igniter) do
         source = Rewrite.source!(igniter.rewrite, gitignore_path)
         content = Rewrite.Source.get(source, :content)
 
-        if String.contains?(content, "\nbuild/") or String.starts_with?(content, "build/") do
-          igniter
-        else
-          new_content = String.trim_trailing(content) <> "\nbuild/\n"
+        add_to_gitignore = fn text ->
+          if String.contains?(content, "\n#{text}") or String.starts_with?(content, "#{text}") do
+            igniter
+          else
+            new_content = String.trim_trailing(content) <> "\n#{text}\n"
 
-          Igniter.update_file(igniter, gitignore_path, fn source ->
-            Rewrite.Source.update(source, :content, new_content)
-          end)
+            Igniter.update_file(igniter, gitignore_path, fn source ->
+              Rewrite.Source.update(source, :content, new_content)
+            end)
+          end
         end
+
+        add_to_gitignore.("build/")
+        add_to_gitignore.(AshGleam.Info.manifest_path())
       else
         Igniter.create_new_file(igniter, gitignore_path, "build/\n", on_exists: :skip)
       end

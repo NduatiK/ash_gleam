@@ -148,7 +148,8 @@ defmodule AshGleam.Marshal do
   end
 
   defp union_to_gleam(value, _variants) do
-    raise ArgumentError, "expected atom or tagged tuple for reusable union value, got: #{inspect(value)}"
+    raise ArgumentError,
+          "expected atom or tagged tuple for reusable union value, got: #{inspect(value)}"
   end
 
   defp union_from_gleam(value, variants) when is_atom(value) do
@@ -169,7 +170,8 @@ defmodule AshGleam.Marshal do
   end
 
   defp union_from_gleam(value, _variants) do
-    raise ArgumentError, "expected atom or tagged tuple for reusable union value, got: #{inspect(value)}"
+    raise ArgumentError,
+          "expected atom or tagged tuple for reusable union value, got: #{inspect(value)}"
   end
 
   defp encode_union_payload(values, fields) when length(values) == length(fields) do

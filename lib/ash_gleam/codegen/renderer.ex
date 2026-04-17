@@ -116,6 +116,7 @@ defmodule AshGleam.Codegen.Renderer do
     definitions =
       Enum.map_join(reusable_type.variants, "\n", fn variant ->
         variant_name = atom_variant!(variant.name)
+
         payload =
           Enum.map_join(variant.fields, ", ", fn field ->
             gleam_type_for_type(field.type, field.constraints, field.allow_nil?, field.name)

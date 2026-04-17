@@ -14,7 +14,15 @@ defmodule AshGleam.Transformers.GenerateDomainInterface do
     |> Enum.reduce({:ok, dsl_state}, fn resource_entry, {:ok, dsl_state} ->
       Enum.reduce(resource_entry.updates, {:ok, dsl_state}, fn update, {:ok, dsl_state} ->
         gleam_action_name = update.gleam_action || update.name
-        {:ok, define_domain_interface(dsl_state, resource_entry.resource, update.name, gleam_action_name, update.action)}
+
+        {:ok,
+         define_domain_interface(
+           dsl_state,
+           resource_entry.resource,
+           update.name,
+           gleam_action_name,
+           update.action
+         )}
       end)
     end)
   end

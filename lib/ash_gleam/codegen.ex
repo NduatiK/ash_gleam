@@ -12,13 +12,22 @@ defmodule AshGleam.Codegen do
     manifest = Manifest.build(opts)
     result = Writer.write(manifest, Renderer.render(manifest, opts), opts)
 
-    try do
-      System.cmd("gleam", ["format"])
-    rescue
-      error ->
-        nil
-    end
+    format_generated_elixir(opts)
+    format_generated_gleam(opts)
 
     result
+  end
+
+  def format_generated_elixir(opts) do
+    Mix.Task.run("format", [AshGleam.Info.output_dir(opts) <> "/**"])
+  end
+
+  def format_generated_gleam(opts) do
+    try do
+      System.cmd("gleam", ["format", AshGleam.Info.output_dir(opts)])
+    rescue
+      _ ->
+        nil
+    end
   end
 end

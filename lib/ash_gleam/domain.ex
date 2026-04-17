@@ -89,7 +89,8 @@ defmodule AshGleam.Domain do
                          |> Entity.build!()
 
   @code_interface_section Section.new(:code_interface,
-                            describe: "Configure generated domain functions for Gleam update actions.",
+                            describe:
+                              "Configure generated domain functions for Gleam update actions.",
                             entities: [@gleam_update_resource]
                           )
                           |> Section.build!()
