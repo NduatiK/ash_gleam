@@ -250,38 +250,10 @@ defmodule AshGleam.Codegen.Renderer do
         "    #{field.name}: #{gleam_type!(field, field.allow_nil?)}"
       end)
 
-    sort_helpers =
-      Enum.map_join(resource.fields, "\n\n", fn field ->
-        base = Macro.camelize(to_string(field.name))
-        field_name = to_string(field.name)
-
-        """
-        pub fn #{field_name}_asc() -> #{resource.gleam_type}Sort {
-          #{base}(Asc)
-        }
-
-        pub fn #{field_name}_desc() -> #{resource.gleam_type}Sort {
-          #{base}(Desc)
-        }
-        """
-      end)
-
     sorts =
       Enum.map_join(resource.fields, "\n", fn field ->
         base = Macro.camelize(to_string(field.name))
         "  #{base}(Sorter)"
-      end)
-
-    filter_helpers =
-      Enum.map_join(resource.fields, "\n\n", fn field ->
-        variant = "#{Macro.camelize(to_string(field.name))}Eq"
-        field_name = to_string(field.name)
-
-        """
-        pub fn #{field_name}_eq(value: #{gleam_type!(field, false)}) -> #{resource.gleam_type}Filter {
-          #{variant}(value)
-        }
-        """
       end)
 
     filters =
@@ -306,13 +278,9 @@ defmodule AshGleam.Codegen.Renderer do
     #{sorts}
     }
 
-    #{sort_helpers}
-
     pub type #{resource.gleam_type}Filter {
     #{filters}
     }
-
-    #{filter_helpers}
     """
   end
 

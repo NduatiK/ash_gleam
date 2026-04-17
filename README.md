@@ -118,8 +118,8 @@ import myapp/generated/src/todo_item.{type TodoFilter, type TodoSort}
 
 pub fn fetch_incomplete(): Result(List(Todo), String) {
   list_todos.new()
-  |> list_todos.filter([todo_item.completed_eq(False)])
-  |> list_todos.sort([todo_item.title_asc()])
+  |> list_todos.filter([todo_item.CompletedEq(False)])
+  |> list_todos.sort([todo_item.Title(Asc)])
   |> list_todos.limit(option.Some(10))
   |> list_todos.run()
 }
