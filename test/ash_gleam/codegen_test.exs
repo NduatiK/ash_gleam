@@ -400,7 +400,7 @@ defmodule AshGleam.CodegenTest do
              """
              pub type Winner#{suffix} {
                Draw
-               Player(Player#{suffix})
+               Player(player: Player#{suffix})
              }
              """
 
