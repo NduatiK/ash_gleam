@@ -21,6 +21,7 @@ defmodule AshGleam.Dsl.GleamAction do
     :run,
     :arguments,
     :allow_nil?,
+    :update?,
     :__identifier__,
     :__spark_metadata__
   ]

@@ -1,3 +1,5 @@
+When testing, always use `mix test` and not `mix test <file>`
+
 <!-- usage-rules-start -->
 <!-- usage_rules-start -->
 ## usage_rules usage

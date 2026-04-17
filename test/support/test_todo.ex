@@ -62,6 +62,7 @@ defmodule AshGleam.TestTodo do
       end
 
       action :mark_completed, __MODULE__ do
+        update? true
         argument :todo, __MODULE__, allow_nil?: false
 
         run &:test_gleam.mark_completed/1

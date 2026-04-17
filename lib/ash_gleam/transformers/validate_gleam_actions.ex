@@ -6,13 +6,14 @@ defmodule AshGleam.Transformers.ValidateGleamActions do
   @moduledoc false
   use Spark.Dsl.Verifier
 
-  def verify(resource) do
-    resource
+  def verify(dsl_state) do
+    dsl_state
     |> AshGleam.Actions.Info.actions()
     |> Enum.reduce_while(:ok, fn action, :ok ->
-      with :ok <- validate_type(action.return_type, action.constraints, resource, "return type"),
-           :ok <- validate_arguments(action.arguments, resource),
-           :ok <- validate_run(action) do
+      with :ok <- validate_type(action.return_type, action.constraints, dsl_state, "return type"),
+           :ok <- validate_arguments(action.arguments, dsl_state),
+           :ok <- validate_run(action),
+           :ok <- validate_update_action(action, dsl_state) do
         {:cont, :ok}
       else
         {:error, error} -> {:halt, {:error, error}}
@@ -91,5 +92,35 @@ defmodule AshGleam.Transformers.ValidateGleamActions do
        message:
          "`run` must be declared as a function capture, for example `&:todo.mark_completed/1`"
      )}
+  end
+
+  defp validate_update_action(%{update?: false}, _dsl_state), do: :ok
+
+  defp validate_update_action(%{update?: true} = action, dsl_state) do
+    first_arg = List.first(action.arguments)
+    return_type = action.return_type
+
+    first_arg_type = first_arg && first_arg.type
+
+    cond do
+      not is_atom(return_type) or not AshGleam.Resource.Info.ash_gleam_resource?(return_type) ->
+        {:error,
+         Spark.Error.DslError.exception(
+           module: dsl_state,
+           message:
+             "gleam action #{inspect(action.name)} has `update? true` but its return type must be an AshGleam resource, got #{inspect(return_type)}"
+         )}
+
+      first_arg == nil or first_arg_type != return_type ->
+        {:error,
+         Spark.Error.DslError.exception(
+           module: dsl_state,
+           message:
+             "gleam action #{inspect(action.name)} has `update? true` but its first argument must be the same resource as the return type (#{inspect(return_type)})"
+         )}
+
+      true ->
+        :ok
+    end
   end
 end
