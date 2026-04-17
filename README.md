@@ -17,12 +17,12 @@ SPDX-License-Identifier: MIT
 
 AshGleam bridges Elixir's [Ash framework](https://ash-hq.org) and [Gleam](https://gleam.run) in two directions:
 
-- **Elixir → Gleam (FFI exports):** Generate typed Gleam modules from your Ash resources so Gleam code can call Ash actions with full compile-time type safety.
+- **Elixir → Gleam (generated bridge modules):** Generate typed Gleam modules from your Ash resources so Gleam code can call Ash actions with full compile-time type safety.
 - **Gleam → Elixir (Gleam actions):** Wire compiled Gleam functions as the implementation of Ash generic actions, letting you run Gleam logic in your Elixir backend.
 
 ## How it works
 
-AshGleam generates Gleam source files from your Ash resource definitions. Each resource becomes a typed Gleam record. Each exported action becomes a Gleam module with a builder pattern and an `@external` FFI call back into an Elixir bridge module.
+AshGleam generates Gleam source files from your Ash resource definitions. Each resource becomes a typed Gleam record. Each exported Ash action becomes a Gleam module with a builder pattern and an `@external` call back into a generated Elixir bridge module.
 
 ```
 mix ash_gleam.codegen
@@ -45,7 +45,7 @@ The generated files live in a configurable output directory (default `lib/ash_gl
 
 Embedded resources (`:embedded` data layer) with the `AshGleam.Resource` extension are fully supported, including as array fields (`{:array, EmbeddedResource}`).
 
-## FFI exports — calling Ash from Gleam
+## Calling Ash from Gleam
 
 ### 1. Mark resources for Gleam type generation
 
@@ -76,22 +76,26 @@ Only `public?: true` attributes are included in the generated Gleam type.
 
 ### 2. Export actions through a domain
 
-Add `AshGleam.FFI` to your domain and list the actions you want to expose:
+Add `AshGleam.Domain` to your domain and list the actions you want to expose inside the `gleam` DSL:
 
 ```elixir
 defmodule MyApp.Domain do
-  use Ash.Domain, extensions: [AshGleam.FFI]
+  use Ash.Domain,
+    otp_app: :my_app,
+    extensions: [AshGleam.Domain]
 
   resources do
     resource MyApp.Todo
   end
 
-  gleam_ffi do
-    resource MyApp.Todo do
-      action :list_todos, :read
-      action :create_todo, :create
-      action :get_todo, :get
-      action :destroy_todo, :destroy
+  gleam do
+    ffi do
+      resource MyApp.Todo do
+        action :list_todos, :read
+        action :create_todo, :create
+        action :get_todo, :get
+        action :destroy_todo, :destroy
+      end
     end
   end
 end
@@ -105,7 +109,7 @@ mix ash_gleam.codegen
 
 ### 4. Use from Gleam
 
-Each exported action becomes its own Gleam module. The first name in `action :list_todos, :read` becomes the module name.
+Each exported action becomes its own Gleam module. The first name in `action :list_todos, :read` becomes the generated module name.
 
 **Listing:**
 ```gleam
@@ -191,6 +195,7 @@ defmodule MyApp.Todo do
       # Takes a Todo, returns a Todo
       action :mark_completed, __MODULE__ do
         argument :todo, __MODULE__, allow_nil?: false
+        update? true
         run &:todo_logic.mark_completed/1
       end
   
@@ -287,15 +292,10 @@ pub type LookupOutcome {
 
 ### 3. Call it through Ash
 
+Scalar-returning and non-update Gleam actions can still be called directly through the generated resource functions:
+
 ```elixir
 todo = MyApp.Todo |> Ash.Changeset.for_create(:create, %{title: "Ship it"}) |> Ash.create!()
-
-{:ok, updated} = MyApp.Todo.mark_completed(%{todo: todo})
-updated.completed #=> true
-
-updated
-|> Ash.Changeset.for_update(:update, AshGleam.Diff.resource_changes(todo, updated))
-|> Ash.update!()
 
 {:ok, 5} = MyApp.Todo.safe_add(%{a: 2, b: 3})
 {:error, _} = MyApp.Todo.safe_add(%{a: -1, b: 3})
@@ -303,14 +303,56 @@ updated
 
 Gleam functions that return `Result(T, String)` map to `{:ok, value}` / `{:error, %Ash.Error.Unknown{}}`. Functions that return a bare value are always wrapped in `{:ok, value}`.
 
-Resource-returning Gleam actions do not persist changes. Use `AshGleam.Diff.resource_changes/2` to compute what changed, then persist explicitly:
+For Gleam actions marked `update? true`, prefer `AshGleam.Changeset.for_update/4` when you want to inspect or modify the changeset before persisting:
 
 ```elixir
-{:ok, proposed} = MyApp.Todo.mark_completed(%{todo: original})
-changes = AshGleam.resource_changes(original, proposed)  #=> %{completed: true}
+todo =
+  MyApp.Todo
+  |> Ash.Changeset.for_create(:create, %{title: "Ship it"})
+  |> Ash.create!()
 
-persisted = original |> Ash.Changeset.for_update(:update, changes) |> Ash.update!()
+{:ok, changeset} =
+  AshGleam.Changeset.for_update(todo, :mark_completed, %{}, action: :update)
+
+persisted = Ash.update!(changeset)
+persisted.completed #=> true
 ```
+
+If you want a code interface that persists the update for you, configure it on the domain:
+
+```elixir
+defmodule MyApp.Domain do
+  use Ash.Domain,
+    otp_app: :my_app,
+    extensions: [AshGleam.Domain]
+
+  resources do
+    resource MyApp.Todo
+  end
+
+  gleam do
+    code_interface do
+      resource MyApp.Todo do
+        define_gleam_update :mark_completed, action: :update
+      end
+    end
+  end
+end
+```
+
+That generates domain functions like `mark_completed/1-3` and `mark_completed!/1-3`:
+
+```elixir
+todo =
+  MyApp.Todo
+  |> Ash.Changeset.for_create(:create, %{title: "Ship it"})
+  |> Ash.create!()
+
+{:ok, updated} = MyApp.Domain.mark_completed(todo)
+updated.completed #=> true
+```
+
+`AshGleam.Diff.resource_changes/2` is still available when you need the raw diff, but it is no longer the recommended primary workflow for update-style Gleam actions.
 
 ## Embedded resources
 
@@ -350,11 +392,11 @@ defmodule MyApp.Todo do
 end
 ```
 
-The generated `todo_item.gleam` will import `tag.gleam` and use `List(Tag)` as the field type. All marshalling through Gleam actions and FFI calls handles the nested types transparently.
+The generated `todo_item.gleam` will import `tag.gleam` and use `List(Tag)` as the field type. All marshalling through Gleam actions and generated bridge calls handles the nested types transparently.
 
 ## Gleam functions calling back into Elixir
 
-Gleam actions can use the generated FFI modules to call Ash actions, enabling patterns where Gleam orchestrates Ash reads or writes:
+Gleam actions can use the generated bridge modules to call Ash actions, enabling patterns where Gleam orchestrates Ash reads or writes:
 
 ```gleam
 import myapp/generated/src/first_completed_todo
