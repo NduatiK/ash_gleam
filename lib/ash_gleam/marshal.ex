@@ -23,10 +23,17 @@ defmodule AshGleam.Marshal do
 
   @spec output!(term(), term(), Keyword.t()) :: term()
   def output!(type, value, opts \\ []) do
-    if value == :none do
-      nil
-    else
-      marshal(type, value, opts, :from_gleam)
+    allow_nil? = Keyword.get(opts, :allow_nil?, false)
+
+    case value do
+      :none when allow_nil? ->
+        nil
+
+      {:some, inner} when allow_nil? ->
+        marshal(type, inner, opts, :from_gleam)
+
+      _ ->
+        marshal(type, value, opts, :from_gleam)
     end
   rescue
     error ->
@@ -97,10 +104,16 @@ defmodule AshGleam.Marshal do
       if nil_items? do
         case direction do
           :to_gleam ->
-            if is_nil(item), do: :none, else: marshal(inner, item, [constraints: item_constraints], direction)
+            if is_nil(item),
+              do: :none,
+              else: {:some, marshal(inner, item, [constraints: item_constraints], direction)}
 
           :from_gleam ->
-            if item == :none, do: nil, else: marshal(inner, item, [constraints: item_constraints], direction)
+            case item do
+              :none -> nil
+              {:some, v} -> marshal(inner, v, [constraints: item_constraints], direction)
+              v -> marshal(inner, v, [constraints: item_constraints], direction)
+            end
         end
       else
         marshal(inner, item, [constraints: item_constraints], direction)

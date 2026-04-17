@@ -138,6 +138,17 @@ defmodule AshGleam.RuntimeTest do
     assert AshGleam.resource_changes(original, proposed) == %{completed: true}
   end
 
+  test "output! unwraps :none and {:some, v} only when allow_nil? is true" do
+    # With allow_nil?: true — unwrap
+    assert AshGleam.Marshal.output!(:string, :none, allow_nil?: true) == nil
+    assert AshGleam.Marshal.output!(:string, {:some, "hi"}, allow_nil?: true) == "hi"
+    assert AshGleam.Marshal.output!(:integer, {:some, 42}, allow_nil?: true) == 42
+
+    # With allow_nil?: false (default) — pass through as-is, not unwrapped
+    assert AshGleam.Marshal.output!(:string, "hello", allow_nil?: false) == "hello"
+    assert AshGleam.Marshal.output!(:integer, 7, allow_nil?: false) == 7
+  end
+
   test "marshal handles scalar, nullable, array, resource, and atom enum values" do
     todo = %AshGleam.TestTodo{id: "todo-1", title: "Write docs", completed: false}
     atom_constraints = [one_of: [:x, :o]]
