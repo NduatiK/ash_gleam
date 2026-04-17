@@ -351,8 +351,6 @@ pub fn fetch_incomplete_todo_titles(): Result(List(String), String) {
 
 You can define the equivalent to Gleam's custom types using `AshSumType` from [ash_sum_type](https://github.com/NduatiK/ash_sum_type).
 
-### Nullary sum types
-
 <table>
   <thead>
     <tr>
