@@ -1,31 +1,51 @@
 defmodule ExampleWeb.Example.GameLive do
-  use Phoenix.LiveView
+  use ExampleWeb, :live_view
 
   alias Example.Games
   alias Example.Games.TicTacToe
 
   def render(assigns) do
     ~H"""
-    <div class="win-block">
-      <h1>{@render_win}</h1>
-    </div>
-    <div class="center">
-      <div class="grid">
-        <%= for {x, y, mark} <- @grid do %>
-          <%= if @ended? do %>
-            <div phx-value-x={x} phx-value-y={y} class={"mark-#{mark}"}>
-              {mark}
-            </div>
-          <% else %>
-            <div phx-click="mark" phx-value-x={x} phx-value-y={y} class={"mark-#{mark}"}>
-              {mark}
-            </div>
-          <% end %>
-        <% end %>
+    <Layouts.app flash={@flash}>
+      <div class="win-block">
+        <h1>{@render_win}</h1>
       </div>
-    </div>
-    <.css />
+      <div class="center">
+        <div class="grid">
+          <%= for {x, y, mark} <- @grid do %>
+            <%= if @ended? do %>
+              <div phx-value-x={x} phx-value-y={y} class={"mark-#{mark}"}>
+                {mark}
+              </div>
+            <% else %>
+              <div phx-click="mark" phx-value-x={x} phx-value-y={y} class={"mark-#{mark}"}>
+                {mark}
+              </div>
+            <% end %>
+          <% end %>
+        </div>
+      </div>
+      <.css />
+    </Layouts.app>
     """
+  end
+
+  def mount(%{"id" => id}, _session, socket) do
+    case Games.get_tictactoe(id) do
+      {:error, game} ->
+        {:ok,
+         socket
+         |> put_flash(:error, "Game not found, creating new game")
+         |> push_navigate(to: "/")}
+
+      {:ok, game} ->
+        {:ok,
+         socket
+         |> assign(:game, game)
+         |> assign(:grid, render_grid(game))
+         |> assign(:ended?, ended?(game))
+         |> assign(:render_win, render_win(game))}
+    end
   end
 
   def mount(_params, _session, socket) do
@@ -33,10 +53,8 @@ defmodule ExampleWeb.Example.GameLive do
 
     {:ok,
      socket
-     |> assign(:game, game)
-     |> assign(:grid, render_grid(game))
-     |> assign(:ended?, ended?(game))
-     |> assign(:render_win, render_win(game))}
+     |> put_flash(:info, "Creating new game")
+     |> push_navigate(to: "/game/#{game.id}")}
   end
 
   def handle_event("mark", %{"x" => x, "y" => y}, socket) do
@@ -44,7 +62,15 @@ defmodule ExampleWeb.Example.GameLive do
     {y, ""} = Integer.parse(y)
 
     case TicTacToe.mark(%{game: socket.assigns.game, x: x, y: y}) do
-      {:ok, game} ->
+      {:ok, new_game} ->
+        game =
+          socket.assigns.game
+          |> Ash.Changeset.for_update(
+            :update,
+            AshGleam.Diff.resource_changes(socket.assigns.game, new_game)
+          )
+          |> Ash.update!()
+
         {:noreply,
          socket
          |> assign(:game, game)
@@ -58,26 +84,26 @@ defmodule ExampleWeb.Example.GameLive do
   end
 
   defp ended?(%TicTacToe{} = game) do
-    case TicTacToe.win(%{game: game}) do
-      {:ok, _} -> true
-      {:error, _} -> false
+    case TicTacToe.win!(%{game: game}) do
+      :none -> false
+      _ -> true
     end
   end
 
   defp render_win(%TicTacToe{} = game) do
-    case TicTacToe.win(%{game: game}) do
-      {:ok, :x} -> "Game! X 🎉"
-      {:ok, :o} -> "Game! O 🎉"
-      {:ok, :draw} -> "Draw"
-      {:error, _} -> nil
+    case TicTacToe.win!(%{game: game}) do
+      :x -> "Game! X 🎉"
+      :o -> "Game! O 🎉"
+      :draw -> "Draw"
+      :none -> nil
     end
   end
 
   defp render_grid(%TicTacToe{} = game) do
     for y <- [0, 1, 2], x <- [0, 1, 2] do
-      case TicTacToe.peek(%{game: game, x: x, y: y}) do
-        {:ok, :empty} -> {x, y, nil}
-        {:ok, mark} -> {x, y, mark}
+      case TicTacToe.peek!(%{game: game, x: x, y: y}) do
+        :empty -> {x, y, nil}
+        mark -> {x, y, mark}
       end
     end
   end

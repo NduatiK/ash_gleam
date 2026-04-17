@@ -13,6 +13,7 @@ defmodule Example.Games do
   resources do
     resource Example.Games.TicTacToe do
       define :new_tictactoe, action: :create
+      define :get_tictactoe, action: :read, get_by: :id
     end
   end
 end

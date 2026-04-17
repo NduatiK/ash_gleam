@@ -10,7 +10,12 @@ defmodule Example.MixProject do
       start_permanent: Mix.env() == :prod,
       aliases: aliases(),
       deps: deps(),
-      compilers: [:gleam, :phoenix_live_view] ++ Mix.compilers(),
+      compilers:
+        if Mix.env() == :gen do
+          [:phoenix_live_view] ++ Mix.compilers()
+        else
+          [:gleam, :phoenix_live_view] ++ Mix.compilers()
+        end,
       listeners: [Phoenix.CodeReloader],
       consolidate_protocols: Mix.env() != :dev,
       archives: [mix_gleam: "~> 0.6"],
@@ -76,7 +81,7 @@ defmodule Example.MixProject do
       {:jason, "~> 1.2"},
       {:dns_cluster, "~> 0.2.0"},
       {:bandit, "~> 1.5"},
-      # 
+      #
       {:ash_gleam, [path: "..", override: true]}
     ]
   end

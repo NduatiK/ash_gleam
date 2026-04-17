@@ -1,25 +1,25 @@
-import generated/src/board
-import generated/src/current_player
+import generated/src/example/games/tic_tac_toe/mark
+import generated/src/example/games/tic_tac_toe/player
+import generated/src/example/games/tic_tac_toe/winner
 import generated/src/tic_tac_toe.{type TicTacToe, TicTacToe}
-import generated/src/winner
 import gleam/list
 import gleam/result.{try_recover as else_try}
 
 type Grid =
-  List(board.Board)
+  List(mark.Mark)
 
 pub type Error {
   OutOfBounds(x: Int, y: Int)
-  AlreadyMarked(x: Int, y: Int, mark: board.Board)
+  AlreadyMarked(x: Int, y: Int, mark: mark.Mark)
 }
 
 pub fn mark(game: TicTacToe, x: Int, y: Int) -> Result(TicTacToe, Error) {
   case { peek(game, x, y) } {
-    Ok(board.Empty) -> {
+    Ok(mark.Empty) -> {
       let board =
         put(game.board, x, y, case game.current_player {
-          current_player.O -> board.O
-          current_player.X -> board.X
+          player.O -> mark.O
+          player.X -> mark.X
         })
       let current_player = next_turn(game.current_player)
       let game = TicTacToe(..game, board:, current_player:)
@@ -36,37 +36,39 @@ pub fn mark(game: TicTacToe, x: Int, y: Int) -> Result(TicTacToe, Error) {
   }
 }
 
-pub fn win(game: TicTacToe) -> Result(winner.Winner, Nil) {
-  // Check all rows
-  use _ <- else_try(check(game.board, [#(0, 0), #(0, 1), #(0, 2)]))
-  use _ <- else_try(check(game.board, [#(1, 0), #(1, 1), #(1, 2)]))
-  use _ <- else_try(check(game.board, [#(2, 0), #(2, 1), #(2, 2)]))
+pub fn win(game: TicTacToe) -> winner.Winner {
+  {
+    use _ <- else_try(check(game.board, [#(0, 0), #(0, 1), #(0, 2)]))
+    use _ <- else_try(check(game.board, [#(1, 0), #(1, 1), #(1, 2)]))
+    use _ <- else_try(check(game.board, [#(2, 0), #(2, 1), #(2, 2)]))
 
-  // Check all columns
-  use _ <- else_try(check(game.board, [#(0, 0), #(1, 0), #(2, 0)]))
-  use _ <- else_try(check(game.board, [#(0, 1), #(1, 1), #(2, 1)]))
-  use _ <- else_try(check(game.board, [#(0, 2), #(1, 2), #(2, 2)]))
+    // Check all columns
+    use _ <- else_try(check(game.board, [#(0, 0), #(1, 0), #(2, 0)]))
+    use _ <- else_try(check(game.board, [#(0, 1), #(1, 1), #(2, 1)]))
+    use _ <- else_try(check(game.board, [#(0, 2), #(1, 2), #(2, 2)]))
 
-  // Check \ diagonal
-  use _ <- else_try(check(game.board, [#(0, 0), #(1, 1), #(2, 2)]))
+    // Check \ diagonal
+    use _ <- else_try(check(game.board, [#(0, 0), #(1, 1), #(2, 2)]))
 
-  // Check / diagonal
-  use _ <- else_try(check(game.board, [#(0, 2), #(1, 1), #(2, 0)]))
+    // Check / diagonal
+    use _ <- else_try(check(game.board, [#(0, 2), #(1, 1), #(2, 0)]))
 
-  case is_filled(game) {
-    True -> Ok(winner.Draw)
-    False -> Error(Nil)
+    case is_filled(game) {
+      True -> Ok(winner.Draw)
+      False -> Error(Nil)
+    }
   }
+  |> result.unwrap(winner.None)
 }
 
 fn is_filled(game: TicTacToe) -> Bool {
-  !list.any(game.board, fn(v) { v == board.Empty })
+  !list.any(game.board, fn(v) { v == mark.Empty })
 }
 
-fn next_turn(mark: current_player.CurrentPlayer) -> current_player.CurrentPlayer {
+fn next_turn(mark: player.Player) -> player.Player {
   case mark {
-    current_player.X -> current_player.O
-    current_player.O -> current_player.X
+    player.O -> player.X
+    player.X -> player.O
   }
 }
 
@@ -77,10 +79,10 @@ fn check(grid: Grid, coordinates: List(#(Int, Int))) -> Result(_, Nil) {
     |> result.values
 
   case marks {
-    [x, y, z] if x == y && y == z && x != board.Empty -> {
+    [x, y, z] if x == y && y == z && x != mark.Empty -> {
       Ok(case x {
-        board.O -> winner.O
-        _ -> winner.X
+        mark.O -> winner.Player(player.O)
+        _ -> winner.Player(player.X)
       })
     }
     _other -> Error(Nil)
@@ -114,14 +116,13 @@ fn get(grid: Grid, position: #(Int, Int)) {
   }
 }
 
-fn put(grid: Grid, x: Int, y: Int, value: board.Board) {
+fn put(grid: Grid, x: Int, y: Int, value: mark.Mark) {
   let index = {
     x + y * 3
   }
 
-  case list.split(grid, index) |> echo {
-    #(before, [board.Empty, ..rest]) -> list.append(before, [value, ..rest])
+  case list.split(grid, index) {
+    #(before, [mark.Empty, ..rest]) -> list.append(before, [value, ..rest])
     _ -> grid
   }
-  |> echo
 }

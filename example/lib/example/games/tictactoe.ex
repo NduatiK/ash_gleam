@@ -4,6 +4,10 @@ defmodule Example.Games.TicTacToe do
     data_layer: Ash.DataLayer.Ets,
     extensions: [AshGleam.Resource, AshGleam.Actions]
 
+  alias Example.Games.TicTacToe.Mark
+  alias Example.Games.TicTacToe.Player
+  alias Example.Games.TicTacToe.Winner
+
   ets do
     private? false
     table :games_tictactoe
@@ -11,68 +15,67 @@ defmodule Example.Games.TicTacToe do
 
   gleam do
     type_name("TicTacToe")
+    
+    actions do
+      action :win, Winner do
+        argument :game, __MODULE__, allow_nil?: false
+
+        run &:tictactoe.win/1
+      end
+
+      action :mark, __MODULE__ do
+        argument :game, __MODULE__, allow_nil?: false
+        argument :x, :integer, allow_nil?: false
+        argument :y, :integer, allow_nil?: false
+
+        run &:tictactoe.mark/3
+      end
+
+      action :peek, Mark do
+        argument :game, __MODULE__, allow_nil?: false
+        argument :x, :integer, allow_nil?: false
+        argument :y, :integer, allow_nil?: false
+
+        run &:tictactoe.peek/3
+      end
+    end
   end
 
-  gleam_actions do
-    action :win, :term do
-      argument :game, __MODULE__, allow_nil?: false
-
-      run &:tictactoe.win/1
-    end
-
-    action :mark, __MODULE__ do
-      argument :game, __MODULE__, allow_nil?: false
-      argument :x, :integer, allow_nil?: false
-      argument :y, :integer, allow_nil?: false
-
-      run &:tictactoe.mark/3
-    end
-
-    action :peek, :atom do
-      constraints one_of: [:x, :o, :empty]
-
-      argument :game, __MODULE__, allow_nil?: false
-      argument :x, :integer, allow_nil?: false
-      argument :y, :integer, allow_nil?: false
-
-      run &:tictactoe.peek/3
-    end
+  code_interface do
+    define :update, action: :update
   end
 
   actions do
     create :create do
+    end
+
+    update :update do
+      accept :*
+      require_atomic? false
+    end
+
+    read :read do
     end
   end
 
   attributes do
     uuid_primary_key :id
 
-    attribute :board, {:array, :atom} do
+    attribute :board, {:array, Mark} do
       allow_nil? false
       public? true
-      constraints items: [one_of: [:x, :o, :empty]]
       default [:empty, :empty, :empty, :empty, :empty, :empty, :empty, :empty, :empty]
     end
 
-    attribute :current_player, :atom do
+    attribute :current_player, Player do
       allow_nil? false
       public? true
-      constraints one_of: [:x, :o]
       default :x
     end
 
-    attribute :winner, :atom do
+    attribute :winner, Winner do
       public? true
       allow_nil? true
-      constraints one_of: [:x, :o, :draw]
-    end
-
-    attribute :status, :atom do
-      public? true
-
-      allow_nil? false
-      constraints one_of: [:in_progress, :finished]
-      default :in_progress
     end
   end
 end
