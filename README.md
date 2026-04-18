@@ -126,7 +126,7 @@ Create a `src/` directory for your Gleam source files and add the following to y
 
 
   
-1. Add <code>AshGleam.Resource</code> to your resource and declare a <code>gleam</code> block:    
+1. Add `AshGleam.Resource` to your resource and declare a `gleam` block:    
 
 
   
@@ -153,7 +153,7 @@ end
   
 2. Run `mix ash_gleam.codegen`
   
-  
+
   
 ```gleam
 // generated at src/generated/src/todo_item
@@ -176,7 +176,7 @@ Only `public?: true` attributes are included in the generated Gleam type.
   
 1. Create a gleam function (make sure you have run the generator first)
   
-  
+
 
 ```gleam
 // Import the generated Todo type
@@ -189,9 +189,9 @@ pub fn mark_completed(item: Todo) -> Todo {
 
 
   
-2. Add <code>AshGleam.Actions</code> to your resource and declare a <code>gleam.actions</code> block for that function
+2. Add `AshGleam.Actions` to your resource and declare a `gleam.actions` block for that function
   
-  
+
 
 ```elixir
 defmodule MyApp.Todo do
@@ -220,7 +220,7 @@ end
   
 3. Use the exposed function
   
-  
+
   
 ```elixir
 todo = # create a todo
@@ -239,7 +239,7 @@ assert {:ok, updated} = MyApp.Todo.mark_completed(%{todo: todo})
   
 4. If you want a code interface that does the update for you, update your domain
   
-  
+
     
 ```elixir
 defmodule MyApp.Domain do
@@ -266,7 +266,7 @@ end
   
 1. Add the resource actions you want to expose to Gleam
   
-  
+
   
 ```elixir
 defmodule MyApp.Todo do
@@ -308,7 +308,7 @@ end
   
 2. Create an entry in gleam.ffi for your resource actions
   
-  
+
 
 ```elixir
 defmodule MyApp.Domain do
@@ -337,7 +337,7 @@ end
   
 4. Use the generated gleam functions
   
-  
+
   
 ```gleam
 import myapp/generated/src/list_todos
