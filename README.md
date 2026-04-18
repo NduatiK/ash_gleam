@@ -17,10 +17,12 @@ SPDX-License-Identifier: MIT
 AshGleam integrates Elixir's Ash framework and Gleam into a single, cohesive system. It enables you to move data and execution across the boundary with compile-time guarantees.
 
 You can:
+
 - [AshGleam](#ashgleam)
   - [Installation](#installation)
     - [With Igniter (recommended)](#with-igniter-recommended)
     - [Manual setup](#manual-setup)
+  - [Standalone Elixir and Gleam bridges](#standalone-elixir-and-gleam-bridges)
   - [Generate Gleam types from your Ash resources](#generate-gleam-types-from-your-ash-resources)
   - [Expose Gleam functions as Ash actions](#expose-gleam-functions-as-ash-actions)
   - [Expose Ash actions to Gleam](#expose-ash-actions-to-gleam)
@@ -33,17 +35,11 @@ You can:
 
 ## Installation
 
-
-
-  
 ### With Igniter (recommended)
 
 ```bash
 mix igniter.install ash_gleam
 ```
-
-
-
 
 ```bash
 mix igniter.install ash_gleam
@@ -66,12 +62,7 @@ You will still need to install the Gleam compiler and the MixGleam archive:
 mix archive.install hex mix_gleam
 ```
 
-
-
-  
 ### Manual setup
-
-
 
 Add `ash_gleam` to your dependencies:
 
@@ -113,6 +104,7 @@ end
 ```
 
 Create a `src/` directory for your Gleam source files and add the following to your `.gitignore`:
+
 ```
 # gleam build files
 /build/
@@ -121,15 +113,45 @@ Create a `src/` directory for your Gleam source files and add the following to y
 /src/generated/manifest.term
 ```
 
+## Standalone Elixir and Gleam bridges
+
+If you only want Elixir↔Gleam interop and do not want to hook into Ash, use `AshGleam.GleamBridge`.
+
+```elixir
+defmodule MyApp.MathBridge do
+  use AshGleam.GleamBridge
+
+  gleam do
+    consume do
+      function :add_in_gleam, :integer do
+        argument :a, :integer, allow_nil?: false
+        argument :b, :integer, allow_nil?: false
+
+        run &:my_gleam_module.add/2
+      end
+    end
+
+    expose do
+      function :add, :integer do
+        argument :a, :integer, allow_nil?: false
+        argument :b, :integer, allow_nil?: false
+
+        run fn a, b -> {:ok, a + b} end
+      end
+    end
+  end
+end
+```
+
+- `consume` makes Gleam functions callable from Elixir `MyApp.MathBridge.add(2, 3)`
+- `expose` generates Gleam-callable functions backed by Elixir.  `math_bridge.add_in_elixr(2, 3)`
+
+Run `mix ash_gleam.codegen` to generate both sides.
 
 ## Generate Gleam types from your Ash resources
 
+1. Add `AshGleam.Resource` to your resource and declare a `gleam` block:
 
-  
-1. Add `AshGleam.Resource` to your resource and declare a `gleam` block:    
-
-
-  
 ```elixir
 defmodule MyApp.Todo do
   use Ash.Resource,
@@ -149,12 +171,8 @@ defmodule MyApp.Todo do
 end
 ```
 
-
-  
 2. Run `mix ash_gleam.codegen`
-  
 
-  
 ```gleam
 // generated at src/generated/src/todo_item
 
@@ -167,16 +185,11 @@ pub type TicTacToe {
 }
 ```
 
-
 Only `public?: true` attributes are included in the generated Gleam type.
 
 ## Expose Gleam functions as Ash actions
 
-
-  
 1. Create a gleam function (make sure you have run the generator first)
-  
-
 
 ```gleam
 // Import the generated Todo type
@@ -187,11 +200,7 @@ pub fn mark_completed(item: Todo) -> Todo {
 }
 ```
 
-
-  
 2. Add `AshGleam.Actions` to your resource and declare a `gleam.actions` block for that function
-  
-
 
 ```elixir
 defmodule MyApp.Todo do
@@ -216,12 +225,8 @@ defmodule MyApp.Todo do
 end
 ```
 
-
-  
 3. Use the exposed function
-  
 
-  
 ```elixir
 todo = # create a todo
 
@@ -235,12 +240,8 @@ assert {:ok, updated} = MyApp.Todo.mark_completed(%{todo: todo})
   |> Ash.update!()
 ```
 
-
-  
 4. If you want a code interface that does the update for you, update your domain
-  
 
-    
 ```elixir
 defmodule MyApp.Domain do
   use Ash.Domain,
@@ -262,12 +263,8 @@ end
 
 ## Expose Ash actions to Gleam
 
-
-  
 1. Add the resource actions you want to expose to Gleam
-  
 
-  
 ```elixir
 defmodule MyApp.Todo do
   use Ash.Resource,
@@ -303,12 +300,7 @@ defmodule MyApp.Todo do
 end
 ```
 
-
-
-  
 2. Create an entry in gleam.ffi for your resource actions
-  
-
 
 ```elixir
 defmodule MyApp.Domain do
@@ -330,15 +322,10 @@ defmodule MyApp.Domain do
 end
 ```
 
-
 3. Run `mix ash_gleam.codegen`
 
-
-  
 4. Use the generated gleam functions
-  
 
-  
 ```gleam
 import myapp/generated/src/list_todos
 import myapp/generated/src/todo_item.{type TodoFilter, type TodoSort}
@@ -354,7 +341,6 @@ pub fn fetch_incomplete_todo_titles(): Result(List(String), String) {
   })
 }
 ```
-
 
 ## Represent Gleam custom-types in Elixir
 
@@ -420,15 +406,16 @@ pub type Mark {
 defmodule MyApp.LookupOutcome do
   use AshSumType
 
-  variant :found do
-    field :value, MyApp.Todo, allow_nil?: false
-  end
-
-  variant :missing do
-    field :error, :string, allow_nil?: false
-  end
+variant :found do
+field :value, MyApp.Todo, allow_nil?: false
 end
-```
+
+variant :missing do
+field :error, :string, allow_nil?: false
+end
+end
+
+````
 
 </td>
 <td>
@@ -438,14 +425,13 @@ pub type LookupOutcome {
   Found(Todo)
   Missing(String)
 }
-```
+````
 
 </td>
 </tr>
   </tbody>
   
 </table>
-
 
 ## Embedded resources
 
@@ -478,7 +464,7 @@ defmodule MyApp.Todo do
     # Gleam type List(Tag)
     attribute :tags, {:array, MyApp.Tag}, allow_nil?: false, default: [], public?: true
 
-    
+
     # Gleam type List(Option(Tag))
     attribute :nullable_tags, {:array, MyApp.Tag}, allow_nil?: false, default: [], public?: true, nil_items?: true
   end
