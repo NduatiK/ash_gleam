@@ -10,29 +10,26 @@ SPDX-License-Identifier: MIT
 [![Hex version badge](https://img.shields.io/hexpm/v/ash_gleam.svg)](https://hex.pm/packages/ash_gleam)
 [![Hexdocs badge](https://img.shields.io/badge/docs-hexdocs-purple)](https://hexdocs.pm/ash_gleam)
 
-# AshGleam
+<h1>AshGleam</h1>
 
 **Type-safe Gleam interop for Ash resources**
 
 AshGleam integrates Elixir's Ash framework and Gleam into a single, cohesive system. It enables you to move data and execution across the boundary with compile-time guarantees.
 
-You can:
-
-- [AshGleam](#ashgleam)
-  - [Installation](#installation)
-    - [With Igniter (recommended)](#with-igniter-recommended)
-    - [Manual setup](#manual-setup)
-  - [Represent Gleam custom-types in Elixir](#represent-gleam-custom-types-in-elixir)
-  - [Without Ash](#without-ash)
-  - [With Ash](#with-ash)
-    - [Generate Gleam types from your Ash resources](#generate-gleam-types-from-your-ash-resources)
-    - [Expose Gleam functions as Ash actions](#expose-gleam-functions-as-ash-actions)
-    - [Expose Ash actions to Gleam](#expose-ash-actions-to-gleam)
-    - [Embedded resources](#embedded-resources)
-  - [Requirements](#requirements)
-  - [Contributing](#contributing)
-  - [License](#license)
-  - [Links](#links)
+- [Installation](#installation)
+  - [With Igniter (recommended)](#with-igniter-recommended)
+  - [Manual setup](#manual-setup)
+- [Represent Gleam custom-types in Elixir](#represent-gleam-custom-types-in-elixir)
+- [Without Ash](#without-ash)
+- [With Ash](#with-ash)
+  - [Generate Gleam types from your Ash resources](#generate-gleam-types-from-your-ash-resources)
+  - [Expose Gleam functions as Ash actions](#expose-gleam-functions-as-ash-actions)
+  - [Expose Ash actions to Gleam](#expose-ash-actions-to-gleam)
+  - [Embedded resources](#embedded-resources)
+- [Requirements](#requirements)
+- [Contributing](#contributing)
+- [License](#license)
+- [Links](#links)
 
 ## Installation
 
