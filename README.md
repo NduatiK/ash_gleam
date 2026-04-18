@@ -175,13 +175,13 @@ pub type Mark {
 defmodule MyApp.LookupOutcome do
   use AshSumType
 
-variant :found do
-field :value, MyApp.Todo, allow_nil?: false
-end
+  variant :found do
+    field :value, MyApp.Todo, allow_nil?: false
+  end
 
-variant :missing do
-field :error, :string, allow_nil?: false
-end
+  variant :missing do
+    field :error, :string, allow_nil?: false
+  end
 end
 
 ````
