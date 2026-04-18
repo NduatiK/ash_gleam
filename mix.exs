@@ -6,7 +6,7 @@ defmodule AshGleam.MixProject do
   use Mix.Project
 
   @app :ash_gleam
-  @version "0.3.3"
+  @version "0.4.0"
 
   @description """
   Generate type-safe Gleam clients directly from your Ash resources and actions, ensuring end-to-end type safety between Gleam and Elixir.
