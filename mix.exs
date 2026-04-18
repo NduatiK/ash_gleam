@@ -18,6 +18,7 @@ defmodule AshGleam.MixProject do
       description: @description,
       version: @version,
       package: package(),
+      docs: &docs/0,
       #
       elixir: "~> 1.15",
       elixirc_paths: elixirc_paths(Mix.env()),
@@ -120,6 +121,14 @@ defmodule AshGleam.MixProject do
       #   "spark.formatter --extensions AshGleam.Rpc,AshGleam.Resource,AshGleam.TypedController.Dsl,AshGleam.TypedChannel.Dsl",
       # "spark.cheat_sheets":
       #   "spark.cheat_sheets --extensions AshGleam.Rpc,AshGleam.Resource,AshGleam.TypedController.Dsl,AshGleam.TypedChannel.Dsl"
+    ]
+  end
+
+  defp docs do
+    [
+      extras: [
+        "README.md"
+      ]
     ]
   end
 
