@@ -19,13 +19,13 @@ AshGleam integrates Elixir's Ash framework and Gleam into a single, cohesive sys
 - [Installation](#installation)
   - [With Igniter (recommended)](#with-igniter-recommended)
   - [Manual setup](#manual-setup)
-- [Represent Gleam custom-types in Elixir](#represent-gleam-custom-types-in-elixir)
 - [Without Ash](#without-ash)
 - [With Ash](#with-ash)
   - [Generate Gleam types from your Ash resources](#generate-gleam-types-from-your-ash-resources)
   - [Expose Gleam functions as Ash actions](#expose-gleam-functions-as-ash-actions)
   - [Expose Ash actions to Gleam](#expose-ash-actions-to-gleam)
-  - [Embedded resources](#embedded-resources)
+  - [Custom Types resources](#custom-types-resources)
+  - [Sum types](#sum-types)
 - [Requirements](#requirements)
 - [Contributing](#contributing)
 - [License](#license)
@@ -111,96 +111,6 @@ Create a `src/` directory for your Gleam source files and add the following to y
 /src/generated/manifest.term
 ```
 
-## Represent Gleam custom-types in Elixir
-
-You can define the equivalent to Gleam's custom types using `AshSumType` from [ash_sum_type](https://github.com/NduatiK/ash_sum_type).
-
-<table>
-  <thead>
-    <tr>
-      <th>Elixir</th>
-      <th>Generated Gleam</th>
-    </tr>
-  </thead>
-  <tbody>
-<tr>
-<td>
-  
-```elixir
-defmodule MyApp.Mark do
-  use AshSumType, variants: [:x, :o]
-end
-```
-  
-</td>
-<td>
-
-```gleam
-pub type Mark {
-  X
-  O
-}
-```
-
-</td>
-</tr>
-<tr>
-<td>
-
-```elixir
-defmodule MyApp.Mark do
-  use AshSumType
-
-  variant :x
-  variant :o
-end
-```
-
-</td>
-<td>
-
-```gleam
-pub type Mark {
-  X
-  O
-}
-```
-
-</td>
-</tr>
-<tr>
-<td>
-      
-```elixir
-defmodule MyApp.LookupOutcome do
-  use AshSumType
-
-  variant :found do
-    field :value, MyApp.Todo, allow_nil?: false
-  end
-
-  variant :missing do
-    field :error, :string, allow_nil?: false
-  end
-end
-
-````
-
-</td>
-<td>
-
-```gleam
-pub type LookupOutcome {
-  Found(Todo)
-  Missing(String)
-}
-````
-
-</td>
-</tr>
-</tbody>
-</table>
-
 ## Without Ash
 
 If you only want Elixir↔Gleam interop and do not want to hook into Ash, use `AshGleam.GleamBridge`.
@@ -220,7 +130,7 @@ defmodule MyApp.MathBridge do
     end
 
     expose do
-      function :add, :integer do
+      function :add_in_elixir, :integer do
         argument :a, :integer, allow_nil?: false
         argument :b, :integer, allow_nil?: false
 
@@ -232,9 +142,8 @@ end
 ```
 
 - `consume` makes Gleam functions callable from Elixir `MyApp.MathBridge.add(2, 3)`
-- `expose` generates Gleam-callable functions backed by Elixir. `math_bridge.add_in_elixr(2, 3)`
-
-Run `mix ash_gleam.codegen` to generate both sides.
+- `expose` generates Gleam-callable functions backed by Elixir. `math_bridge.add_in_elixir(2, 3)`
+  - Run `mix ash_gleam.codegen` to generate the gleam bindings.
 
 ## With Ash
 
@@ -432,7 +341,7 @@ pub fn fetch_incomplete_todo_titles(): Result(List(String), String) {
 }
 ```
 
-### Embedded resources
+### Custom Types resources
 
 Resources with the `:embedded` data layer work as field types in other resources. The embedded resource gets its own Gleam type and is imported automatically in the parent resource's generated file.
 
@@ -460,15 +369,119 @@ defmodule MyApp.Todo do
 
   attributes do
     ...
+    # Gleam type Tag
+    attribute :primary_tag, MyApp.Tag, allow_nil?: false, default: [], public?: true
+
     # Gleam type List(Tag)
     attribute :tags, {:array, MyApp.Tag}, allow_nil?: false, default: [], public?: true
-
 
     # Gleam type List(Option(Tag))
     attribute :nullable_tags, {:array, MyApp.Tag}, allow_nil?: false, default: [], public?: true, nil_items?: true
   end
 end
 ```
+
+### Sum types
+
+A single variant sum type would also work and is much cleaner.
+
+```elixir
+defmodule MyApp.Tag do
+  use AshSumType
+
+  variant :tag do
+    field :label, :string
+    field :color, :string
+  end
+end
+```
+
+You can define the equivalent to Gleam's custom types using `AshSumType` from [ash_sum_type](https://github.com/NduatiK/ash_sum_type).
+
+<table>
+  <thead>
+    <tr>
+      <th>Elixir</th>
+      <th>Generated Gleam</th>
+    </tr>
+  </thead>
+  <tbody>
+  <tr>
+  <td>
+    
+  ```elixir
+  defmodule MyApp.Mark do
+    use AshSumType, variants: [:x, :o]
+  end
+  ```
+    
+  </td>
+  <td>
+
+```gleam
+pub type Mark {
+  X
+  O
+}
+```
+
+  </td>
+  </tr>
+  <tr>
+  <td>
+
+```elixir
+defmodule MyApp.Mark do
+  use AshSumType
+
+  variant :x
+  variant :o
+end
+```
+
+</td>
+<td>
+
+```gleam
+pub type Mark {
+  X
+  O
+}
+```
+
+</td>
+</tr>
+<tr>
+  <td>
+
+```elixir
+defmodule MyApp.LookupOutcome do
+  use AshSumType
+
+  variant :found do
+    field :value, MyApp.Todo, allow_nil?: false
+  end
+
+  variant :missing do
+    field :error, :string, allow_nil?: false
+  end
+end
+```
+
+</td>
+<td>
+
+```gleam
+pub type LookupOutcome {
+  Found(Todo)
+  Missing(String)
+}
+```
+
+</td>
+</tr>
+</tbody>
+</table>
 
 ## Requirements
 
