@@ -24,8 +24,8 @@ AshGleam integrates Elixir's Ash framework and Gleam into a single, cohesive sys
   - [Generate Gleam types from your Ash resources](#generate-gleam-types-from-your-ash-resources)
   - [Expose Gleam functions as Ash actions](#expose-gleam-functions-as-ash-actions)
   - [Expose Ash actions to Gleam](#expose-ash-actions-to-gleam)
-  - [Custom Types resources](#custom-types-resources)
-  - [Sum types](#sum-types)
+- [Custom types](#custom-types)
+  - [Embedded resource support](#embedded-resource-support)
 - [Requirements](#requirements)
 - [Contributing](#contributing)
 - [License](#license)
@@ -341,60 +341,7 @@ pub fn fetch_incomplete_todo_titles(): Result(List(String), String) {
 }
 ```
 
-### Custom Types resources
-
-Resources with the `:embedded` data layer work as field types in other resources. The embedded resource gets its own Gleam type and is imported automatically in the parent resource's generated file.
-
-```elixir
-defmodule MyApp.Tag do
-  use Ash.Resource,
-    domain: MyApp.Domain,
-    data_layer: :embedded,
-    extensions: [AshGleam.Resource]
-
-  gleam do
-    type_name "Tag"
-  end
-
-  attributes do
-    attribute :label, :string, allow_nil?: false, public?: true
-    attribute :color, :string, allow_nil?: false, public?: true
-  end
-end
-
-defmodule MyApp.Todo do
-  use Ash.Resource,
-    ...,
-    extensions: [AshGleam.Resource]
-
-  attributes do
-    ...
-    # Gleam type Tag
-    attribute :primary_tag, MyApp.Tag, allow_nil?: false, default: [], public?: true
-
-    # Gleam type List(Tag)
-    attribute :tags, {:array, MyApp.Tag}, allow_nil?: false, default: [], public?: true
-
-    # Gleam type List(Option(Tag))
-    attribute :nullable_tags, {:array, MyApp.Tag}, allow_nil?: false, default: [], public?: true, nil_items?: true
-  end
-end
-```
-
-### Sum types
-
-A single variant sum type would also work and is much cleaner.
-
-```elixir
-defmodule MyApp.Tag do
-  use AshSumType
-
-  variant :tag do
-    field :label, :string
-    field :color, :string
-  end
-end
-```
+## Custom types
 
 You can define the equivalent to Gleam's custom types using `AshSumType` from [ash_sum_type](https://github.com/NduatiK/ash_sum_type).
 
@@ -482,6 +429,46 @@ pub type LookupOutcome {
 </tr>
 </tbody>
 </table>
+
+### Embedded resource support
+
+Resources with the `:embedded` data layer work as field types in other resources. The embedded resource gets its own Gleam type and is imported automatically in the parent resource's generated file.
+
+```elixir
+defmodule MyApp.Tag do
+  use Ash.Resource,
+    domain: MyApp.Domain,
+    data_layer: :embedded,
+    extensions: [AshGleam.Resource]
+
+  gleam do
+    type_name "Tag"
+  end
+
+  attributes do
+    attribute :label, :string, allow_nil?: false, public?: true
+    attribute :color, :string, allow_nil?: false, public?: true
+  end
+end
+
+defmodule MyApp.Todo do
+  use Ash.Resource,
+    ...,
+    extensions: [AshGleam.Resource]
+
+  attributes do
+    ...
+    # Gleam type Tag
+    attribute :primary_tag, MyApp.Tag, allow_nil?: false, default: [], public?: true
+
+    # Gleam type List(Tag)
+    attribute :tags, {:array, MyApp.Tag}, allow_nil?: false, default: [], public?: true
+
+    # Gleam type List(Option(Tag))
+    attribute :nullable_tags, {:array, MyApp.Tag}, allow_nil?: false, default: [], public?: true, nil_items?: true
+  end
+end
+```
 
 ## Requirements
 
