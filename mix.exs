@@ -18,6 +18,8 @@ defmodule AshGleam.MixProject do
       description: @description,
       version: @version,
       package: package(),
+            docs: &docs/0,
+
       #
       elixir: "~> 1.15",
       elixirc_paths: elixirc_paths(Mix.env()),
@@ -63,6 +65,14 @@ defmodule AshGleam.MixProject do
   defp application(_) do
     [
       extra_applications: [:logger]
+    ]
+  end 
+  
+  defp docs do
+    [
+      extras: [
+        "README.md"
+      ]
     ]
   end
 
