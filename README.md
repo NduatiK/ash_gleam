@@ -22,12 +22,13 @@ You can:
   - [Installation](#installation)
     - [With Igniter (recommended)](#with-igniter-recommended)
     - [Manual setup](#manual-setup)
-  - [Standalone Elixir and Gleam bridges](#standalone-elixir-and-gleam-bridges)
-  - [Generate Gleam types from your Ash resources](#generate-gleam-types-from-your-ash-resources)
-  - [Expose Gleam functions as Ash actions](#expose-gleam-functions-as-ash-actions)
-  - [Expose Ash actions to Gleam](#expose-ash-actions-to-gleam)
   - [Represent Gleam custom-types in Elixir](#represent-gleam-custom-types-in-elixir)
-  - [Embedded resources](#embedded-resources)
+  - [Without Ash](#without-ash)
+  - [With Ash](#with-ash)
+    - [Generate Gleam types from your Ash resources](#generate-gleam-types-from-your-ash-resources)
+    - [Expose Gleam functions as Ash actions](#expose-gleam-functions-as-ash-actions)
+    - [Expose Ash actions to Gleam](#expose-ash-actions-to-gleam)
+    - [Embedded resources](#embedded-resources)
   - [Requirements](#requirements)
   - [Contributing](#contributing)
   - [License](#license)
@@ -111,235 +112,6 @@ Create a `src/` directory for your Gleam source files and add the following to y
 
 # intermediate generation file
 /src/generated/manifest.term
-```
-
-## Standalone Elixir and Gleam bridges
-
-If you only want Elixir↔Gleam interop and do not want to hook into Ash, use `AshGleam.GleamBridge`.
-
-```elixir
-defmodule MyApp.MathBridge do
-  use AshGleam.GleamBridge
-
-  gleam do
-    consume do
-      function :add_in_gleam, :integer do
-        argument :a, :integer, allow_nil?: false
-        argument :b, :integer, allow_nil?: false
-
-        run &:my_gleam_module.add/2
-      end
-    end
-
-    expose do
-      function :add, :integer do
-        argument :a, :integer, allow_nil?: false
-        argument :b, :integer, allow_nil?: false
-
-        run fn a, b -> {:ok, a + b} end
-      end
-    end
-  end
-end
-```
-
-- `consume` makes Gleam functions callable from Elixir `MyApp.MathBridge.add(2, 3)`
-- `expose` generates Gleam-callable functions backed by Elixir. `math_bridge.add_in_elixr(2, 3)`
-
-Run `mix ash_gleam.codegen` to generate both sides.
-
-## Generate Gleam types from your Ash resources
-
-1. Add `AshGleam.Resource` to your resource and declare a `gleam` block:
-
-```elixir
-defmodule MyApp.Todo do
-  use Ash.Resource,
-    ...,
-    extensions: [AshGleam.Resource, AshGleam.Actions]
-
-  gleam do
-    type_name "Todo"       # required — the Gleam type name
-    module_name "todo_item" # optional — overrides the generated file name
-  end
-
-  attributes do
-    uuid_primary_key :id
-    attribute :title, :string, allow_nil?: false, public?: true
-    attribute :completed, :boolean, default: false, public?: true
-  end
-end
-```
-
-2. Run `mix ash_gleam.codegen`
-
-```gleam
-// generated at src/generated/src/todo_item
-
-pub type TicTacToe {
-  TicTacToe(
-    id: String,
-    title: String,
-    completed: Boolean,
-  )
-}
-```
-
-Only `public?: true` attributes are included in the generated Gleam type.
-
-## Expose Gleam functions as Ash actions
-
-1. Create a gleam function (make sure you have run the generator first)
-
-```gleam
-// Import the generated Todo type
-import src/generated/src/todo_item.{type Todo, Todo}
-
-pub fn mark_completed(item: Todo) -> Todo {
-  Todo(..item, completed: True)
-}
-```
-
-2. Add `AshGleam.Actions` to your resource and declare a `gleam.actions` block for that function
-
-```elixir
-defmodule MyApp.Todo do
-  use Ash.Resource,
-    ...,
-    extensions: [AshGleam.Resource, AshGleam.Actions]
-
-
-  gleam do
-    type_name "Todo"
-    module_name "todo_item"
-
-    actions do
-      action :mark_completed, __MODULE__ do
-        update? true
-        argument :todo, __MODULE__, allow_nil?: false
-
-        run &:test_gleam.mark_completed/1
-      end
-    end
-  end
-end
-```
-
-3. Use the exposed function
-
-```elixir
-todo = # create a todo
-
-# mark_completed in memory
-assert {:ok, updated} = MyApp.Todo.mark_completed(%{todo: todo})
-
-# mark_completed and persist
-{:ok, changeset} =
-  todo
-  |> AshGleam.Changeset.for_update(:mark_completed, %{}, action: :update)
-  |> Ash.update!()
-```
-
-4. If you want a code interface that does the update for you, update your domain
-
-```elixir
-defmodule MyApp.Domain do
-  use Ash.Domain,
-    otp_app: :my_app,
-    extensions: [AshGleam.Domain]
-
-  gleam do
-    code_interface do
-      resource AshGleam.TestTodo do
-        define_gleam_update :mark_completed, action: :update
-      end
-    end
-  end
-end
-
-# mark_completed and persist
-{:ok, updated} = MyApp.Domain.mark_completed(todo)
-```
-
-## Expose Ash actions to Gleam
-
-1. Add the resource actions you want to expose to Gleam
-
-```elixir
-defmodule MyApp.Todo do
-  use Ash.Resource,
-    ...,
-    extensions: [AshGleam.Resource, AshGleam.Actions]
-
-  ...
-
-  actions do
-    defaults [:read]
-
-    create :create do
-      accept [:title, :completed, :priority]
-    end
-
-    update :update do
-      accept [:title, :completed, :priority]
-      require_atomic? false
-    end
-
-    destroy :destroy
-
-    read :get do
-      get_by [:id]
-    end
-
-    read :first_completed do
-      get? true
-      filter expr(completed == true)
-      prepare build(sort: [title: :asc], limit: 1)
-    end
-  end
-end
-```
-
-2. Create an entry in gleam.ffi for your resource actions
-
-```elixir
-defmodule MyApp.Domain do
-  use Ash.Domain,
-    otp_app: :my_app,
-    extensions: [AshGleam.Domain]
-
-  gleam do
-    ffi do
-      resource MyApp.Todo do
-        action :list_todos, :read
-        action :create_todo, :create
-        action :get_todo, :get
-        action :destroy_todo, :destroy
-        action :first_completed, :first_completed
-      end
-    end
-  end
-end
-```
-
-3. Run `mix ash_gleam.codegen`
-
-4. Use the generated gleam functions
-
-```gleam
-import myapp/generated/src/list_todos
-import myapp/generated/src/todo_item.{type TodoFilter, type TodoSort}
-
-pub fn fetch_incomplete_todo_titles(): Result(List(String), String) {
-  list_todos.new()
-  |> list_todos.filter([todo_item.CompletedEq(False)])
-  |> list_todos.sort([todo_item.Title(Asc)])
-  |> list_todos.limit(option.Some(10))
-  |> list_todos.run()
-  |> result.map(fn (todo_item) {
-    todo_item.title
-  })
-}
 ```
 
 ## Represent Gleam custom-types in Elixir
@@ -432,7 +204,238 @@ pub type LookupOutcome {
 </tbody>
 </table>
 
-## Embedded resources
+## Without Ash
+
+If you only want Elixir↔Gleam interop and do not want to hook into Ash, use `AshGleam.GleamBridge`.
+
+```elixir
+defmodule MyApp.MathBridge do
+  use AshGleam.GleamBridge
+
+  gleam do
+    consume do
+      function :add_in_gleam, :integer do
+        argument :a, :integer, allow_nil?: false
+        argument :b, :integer, allow_nil?: false
+
+        run &:my_gleam_module.add/2
+      end
+    end
+
+    expose do
+      function :add, :integer do
+        argument :a, :integer, allow_nil?: false
+        argument :b, :integer, allow_nil?: false
+
+        run fn a, b -> {:ok, a + b} end
+      end
+    end
+  end
+end
+```
+
+- `consume` makes Gleam functions callable from Elixir `MyApp.MathBridge.add(2, 3)`
+- `expose` generates Gleam-callable functions backed by Elixir. `math_bridge.add_in_elixr(2, 3)`
+
+Run `mix ash_gleam.codegen` to generate both sides.
+
+## With Ash
+
+### Generate Gleam types from your Ash resources
+
+1. Add `AshGleam.Resource` to your resource and declare a `gleam` block:
+
+```elixir
+defmodule MyApp.Todo do
+  use Ash.Resource,
+    ...,
+    extensions: [AshGleam.Resource, AshGleam.Actions]
+
+  gleam do
+    type_name "Todo"       # required — the Gleam type name
+    module_name "todo_item" # optional — overrides the generated file name
+  end
+
+  attributes do
+    uuid_primary_key :id
+    attribute :title, :string, allow_nil?: false, public?: true
+    attribute :completed, :boolean, default: false, public?: true
+  end
+end
+```
+
+2. Run `mix ash_gleam.codegen`
+
+```gleam
+// generated at src/generated/src/todo_item
+
+pub type TicTacToe {
+  TicTacToe(
+    id: String,
+    title: String,
+    completed: Boolean,
+  )
+}
+```
+
+Only `public?: true` attributes are included in the generated Gleam type.
+
+### Expose Gleam functions as Ash actions
+
+1. Create a gleam function (make sure you have run the generator first)
+
+```gleam
+// Import the generated Todo type
+import src/generated/src/todo_item.{type Todo, Todo}
+
+pub fn mark_completed(item: Todo) -> Todo {
+  Todo(..item, completed: True)
+}
+```
+
+2. Add `AshGleam.Actions` to your resource and declare a `gleam.actions` block for that function
+
+```elixir
+defmodule MyApp.Todo do
+  use Ash.Resource,
+    ...,
+    extensions: [AshGleam.Resource, AshGleam.Actions]
+
+
+  gleam do
+    type_name "Todo"
+    module_name "todo_item"
+
+    actions do
+      action :mark_completed, __MODULE__ do
+        update? true
+        argument :todo, __MODULE__, allow_nil?: false
+
+        run &:test_gleam.mark_completed/1
+      end
+    end
+  end
+end
+```
+
+3. Use the exposed function
+
+```elixir
+todo = # create a todo
+
+# mark_completed in memory
+assert {:ok, updated} = MyApp.Todo.mark_completed(%{todo: todo})
+
+# mark_completed and persist
+{:ok, changeset} =
+  todo
+  |> AshGleam.Changeset.for_update(:mark_completed, %{}, action: :update)
+  |> Ash.update!()
+```
+
+4. If you want a code interface that does the update for you, update your domain
+
+```elixir
+defmodule MyApp.Domain do
+  use Ash.Domain,
+    otp_app: :my_app,
+    extensions: [AshGleam.Domain]
+
+  gleam do
+    code_interface do
+      resource AshGleam.TestTodo do
+        define_gleam_update :mark_completed, action: :update
+      end
+    end
+  end
+end
+
+# mark_completed and persist
+{:ok, updated} = MyApp.Domain.mark_completed(todo)
+```
+
+### Expose Ash actions to Gleam
+
+1. Add the resource actions you want to expose to Gleam
+
+```elixir
+defmodule MyApp.Todo do
+  use Ash.Resource,
+    ...,
+    extensions: [AshGleam.Resource, AshGleam.Actions]
+
+  ...
+
+  actions do
+    defaults [:read]
+
+    create :create do
+      accept [:title, :completed, :priority]
+    end
+
+    update :update do
+      accept [:title, :completed, :priority]
+      require_atomic? false
+    end
+
+    destroy :destroy
+
+    read :get do
+      get_by [:id]
+    end
+
+    read :first_completed do
+      get? true
+      filter expr(completed == true)
+      prepare build(sort: [title: :asc], limit: 1)
+    end
+  end
+end
+```
+
+2. Create an entry in gleam.ffi for your resource actions
+
+```elixir
+defmodule MyApp.Domain do
+  use Ash.Domain,
+    otp_app: :my_app,
+    extensions: [AshGleam.Domain]
+
+  gleam do
+    ffi do
+      resource MyApp.Todo do
+        action :list_todos, :read
+        action :create_todo, :create
+        action :get_todo, :get
+        action :destroy_todo, :destroy
+        action :first_completed, :first_completed
+      end
+    end
+  end
+end
+```
+
+3. Run `mix ash_gleam.codegen`
+
+4. Use the generated gleam functions
+
+```gleam
+import myapp/generated/src/list_todos
+import myapp/generated/src/todo_item.{type TodoFilter, type TodoSort}
+
+pub fn fetch_incomplete_todo_titles(): Result(List(String), String) {
+  list_todos.new()
+  |> list_todos.filter([todo_item.CompletedEq(False)])
+  |> list_todos.sort([todo_item.Title(Asc)])
+  |> list_todos.limit(option.Some(10))
+  |> list_todos.run()
+  |> result.map(fn (todo_item) {
+    todo_item.title
+  })
+}
+```
+
+### Embedded resources
 
 Resources with the `:embedded` data layer work as field types in other resources. The embedded resource gets its own Gleam type and is imported automatically in the parent resource's generated file.
 
