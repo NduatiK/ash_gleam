@@ -38,3 +38,7 @@ mise.local.toml
 .DS_Store
 .dexter.db*
 example/src/generated/manifest.term
+# Added by code-review-graph
+.code-review-graph/
+/.expert
+/.elixir_ls
