@@ -144,7 +144,7 @@ end
 ```
 
 - `consume` makes Gleam functions callable from Elixir `MyApp.MathBridge.add(2, 3)`
-- `expose` generates Gleam-callable functions backed by Elixir.  `math_bridge.add_in_elixr(2, 3)`
+- `expose` generates Gleam-callable functions backed by Elixir. `math_bridge.add_in_elixr(2, 3)`
 
 Run `mix ash_gleam.codegen` to generate both sides.
 
@@ -354,7 +354,7 @@ You can define the equivalent to Gleam's custom types using `AshSumType` from [a
     </tr>
   </thead>
   <tbody>
-    <tr style="background-color: var(--bgColor-muted,var(--color-canvas-subtle));">
+<tr>
 <td>
   
 ```elixir
@@ -375,7 +375,7 @@ pub type Mark {
 
 </td>
 </tr>
-<tr style="background-color: var(--bgColor-muted,var(--color-canvas-subtle));">
+<tr>
 <td>
 
 ```elixir
@@ -399,7 +399,7 @@ pub type Mark {
 
 </td>
 </tr>
-<tr style="background-color: var(--bgColor-muted,var(--color-canvas-subtle));">
+<tr>
 <td>
       
 ```elixir
@@ -429,8 +429,7 @@ pub type LookupOutcome {
 
 </td>
 </tr>
-  </tbody>
-  
+</tbody>
 </table>
 
 ## Embedded resources
