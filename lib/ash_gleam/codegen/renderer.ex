@@ -44,11 +44,27 @@ defmodule AshGleam.Codegen.Renderer do
         }
       end)
 
+    bridge_gleam =
+      Enum.map(manifest.bridges, fn {_name, bridge} ->
+        %{
+          path: bridge_gleam_path(bridge.module),
+          contents: render_bridge_gleam_module(bridge, prefix)
+        }
+      end)
+
+    bridge_elixir =
+      Enum.map(manifest.bridges, fn {_name, bridge} ->
+        %{
+          path: bridge_elixir_path(bridge.module),
+          contents: render_bridge_elixir_module(bridge)
+        }
+      end)
+
     context_module = [%{path: "ash_gleam/context.gleam", contents: render_context_module()}]
 
     %{
-      gleam: context_module ++ reusable_type_modules ++ resource_modules ++ ffi_modules,
-      elixir: elixir
+      gleam: context_module ++ reusable_type_modules ++ resource_modules ++ ffi_modules ++ bridge_gleam,
+      elixir: elixir ++ bridge_elixir
     }
   end
 
@@ -708,5 +724,94 @@ defmodule AshGleam.Codegen.Renderer do
       "" -> ""
       imports -> imports <> "\n"
     end
+  end
+
+  defp bridge_gleam_path(module) do
+    module
+    |> Module.split()
+    |> Enum.map(&Macro.underscore/1)
+    |> Path.join()
+    |> Kernel.<>(".gleam")
+  end
+
+  defp bridge_elixir_path(module) do
+    module
+    |> Module.split()
+    |> Enum.map(&Macro.underscore/1)
+    |> Path.join()
+    |> Kernel.<>("/generated.ex")
+  end
+
+  defp render_bridge_gleam_module(%{module: module, expose: expose_fns}, prefix) do
+    elixir_module = inspect(module)
+    generated_module = "#{elixir_module}.Generated"
+
+    fns =
+      Enum.map_join(expose_fns, "\n\n", fn func ->
+        args =
+          Enum.map_join(func.arguments, ", ", fn arg ->
+            "#{arg.name}: #{gleam_type!(arg, arg.allow_nil?)}"
+          end)
+
+        return_type = gleam_type_for_type(func.return_type, func.constraints, func.allow_nil?, func.name)
+
+        "@external(erlang, \"Elixir.#{generated_module}\", \"#{func.name}\")\npub fn #{func.name}(#{args}) -> Result(#{return_type}, String)"
+      end)
+
+    all_types =
+      Enum.flat_map(expose_fns, fn func ->
+        return_types = direct_reusable_type_modules(func.return_type, func.constraints)
+        arg_types = Enum.flat_map(func.arguments, &direct_reusable_type_modules(&1.type, &1.constraints))
+        return_types ++ arg_types
+      end)
+      |> Enum.uniq()
+
+    reusable_imports =
+      Enum.map_join(all_types, "\n", fn mod ->
+        {:ok, definition} = AshGleam.ReusableType.definition(mod)
+        "import #{prefix}/#{definition.module_name}.{type #{definition.gleam_type}}"
+      end)
+      |> case do
+        "" -> ""
+        imports -> imports <> "\n"
+      end
+
+    needs_option? =
+      Enum.any?(expose_fns, fn func ->
+        func.allow_nil? or Enum.any?(func.arguments, & &1.allow_nil?)
+      end)
+
+    option_import = if needs_option?, do: "import gleam/option.{type Option}\n", else: ""
+
+    "#{option_import}#{reusable_imports}#{fns}\n"
+  end
+
+  defp render_bridge_elixir_module(%{module: module, expose: expose_fns}) do
+    generated_module = "#{inspect(module)}.Generated"
+
+    fns =
+      Enum.map_join(expose_fns, "\n\n", fn func ->
+        arg_names = Enum.map(func.arguments, & &1.name)
+        positional_args = Enum.map_join(arg_names, ", ", &to_string/1)
+
+        """
+          def #{func.name}(#{positional_args}) do
+            AshGleam.GleamBridge.ExposeRunner.call(
+              #{inspect(module)},
+              #{inspect(func.name)},
+              %{#{Enum.map_join(arg_names, ", ", fn n -> "#{n}: #{n}" end)}}
+            )
+          end
+        """
+      end)
+      |> String.trim()
+
+    """
+    defmodule #{generated_module} do
+      @moduledoc false
+
+      #{fns}
+    end
+    """
   end
 end

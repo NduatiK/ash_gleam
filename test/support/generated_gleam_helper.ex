@@ -14,7 +14,7 @@ defmodule AshGleam.GeneratedGleamHelper do
 
     Code.prepend_path("_build/test/lib/ash_gleam/ebin")
 
-    for file <- Path.wildcard("#{AshGleam.Info.elixir_dir()}/ash_gleam/**/*.ex") do
+    for file <- Path.wildcard("#{AshGleam.Info.elixir_dir()}/**/*.ex") do
       Code.compile_file(file)
     end
 

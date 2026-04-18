@@ -59,4 +59,11 @@ defmodule AshGleam.Info do
   def elixir_dir(opts \\ []) do
     output_dir(opts) <> "/lib"
   end
+
+  @spec bridge_modules(Keyword.t()) :: [module()]
+  def bridge_modules(opts \\ []) do
+    opts[:bridge_modules] ||
+      Application.get_env(:ash_gleam, :bridge_modules) ||
+      Spark.sparks(otp_app(opts), AshGleam.GleamBridge)
+  end
 end

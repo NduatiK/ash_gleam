@@ -29,11 +29,17 @@ defmodule AshGleam.Codegen.Manifest do
       |> reusable_type_modules()
       |> Map.new(&reusable_type_manifest/1)
 
+    bridges =
+      opts
+      |> AshGleam.Info.bridge_modules()
+      |> Map.new(&bridge_manifest/1)
+
     %{
       resources: resources,
       domains: domains,
       actions: actions,
-      reusable_types: reusable_types
+      reusable_types: reusable_types,
+      bridges: bridges
     }
   end
 
@@ -82,5 +88,11 @@ defmodule AshGleam.Codegen.Manifest do
 
   defp reusable_type_manifest(module) do
     {inspect(module), AshGleam.Spec.ReusableType.build(module)}
+  end
+
+  defp bridge_manifest(module) do
+    expose_fns = AshGleam.GleamBridge.Info.expose_functions(module)
+    consume_fns = AshGleam.GleamBridge.Info.consume_functions(module)
+    {inspect(module), %{module: module, expose: expose_fns, consume: consume_fns}}
   end
 end
