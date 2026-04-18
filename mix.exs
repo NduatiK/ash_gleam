@@ -6,7 +6,7 @@ defmodule AshGleam.MixProject do
   use Mix.Project
 
   @app :ash_gleam
-  @version "0.2.0"
+  @version "0.3.1"
 
   @description """
   Generate type-safe Gleam clients directly from your Ash resources and actions, ensuring end-to-end type safety between Gleam and Elixir.
@@ -73,7 +73,7 @@ defmodule AshGleam.MixProject do
         "Nduati Kuria"
       ],
       licenses: ["MIT"],
-      files: ~w(lib .formatter.exs mix.exs README*),
+      files: ~w(lib .formatter.exs mix.exs README* doc),
       links: %{
         "GitHub" => "https://github.com/NduatiK/ash_gleam"
       }
@@ -84,7 +84,7 @@ defmodule AshGleam.MixProject do
   defp deps do
     [
       {:ash, "~> 3.2 and >= 3.21.1"},
-      {:ash_sum_type, "~> 1.0.2"},
+      {:ash_sum_type, "~> 1.0.3"},
       {:gleam_stdlib, "~> 0.62", only: [:test]},
       {:gleeunit, "~> 1.0", only: [:test], runtime: false},
       {:git_ops, "~> 2.0", only: [:dev], runtime: false},
