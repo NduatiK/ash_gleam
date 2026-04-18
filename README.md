@@ -29,7 +29,6 @@ AshGleam integrates Elixir's Ash framework and Gleam into a single, cohesive sys
   - [Embedded resource support](#embedded-resource-support)
 - [Requirements](#requirements)
 - [Contributing](#contributing)
-- [License](#license)
 - [Links](#links)
 
 ## Installation
@@ -491,16 +490,8 @@ end
 4. Run `mix test` and `mix format`
 5. Open a pull request
 
-## License
-
-MIT — see [LICENSES/MIT.txt](https://github.com/NduatiK/ash_gleam/blob/main/LICENSES/MIT.txt).
-
 ## Links
 
 - **Hex**: [https://hex.pm/packages/ash_gleam](https://hex.pm/packages/ash_gleam)
 - **Docs**: [https://hexdocs.pm/ash_gleam](https://hexdocs.pm/ash_gleam)
 - **Issues**: [https://github.com/NduatiK/ash_gleam/issues](https://github.com/NduatiK/ash_gleam/issues)
-
-```
-
-```
