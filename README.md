@@ -25,6 +25,7 @@ AshGleam integrates Elixir's Ash framework and Gleam into a single, cohesive sys
   - [Expose Gleam functions as Ash actions](#expose-gleam-functions-as-ash-actions)
   - [Expose Ash actions to Gleam](#expose-ash-actions-to-gleam)
 - [Custom types](#custom-types)
+  - [Using custom types](#using-custom-types)
   - [Embedded resource support](#embedded-resource-support)
 - [Requirements](#requirements)
 - [Contributing](#contributing)
@@ -430,27 +431,9 @@ pub type LookupOutcome {
 </tbody>
 </table>
 
-### Embedded resource support
-
-Resources with the `:embedded` data layer work as field types in other resources. The embedded resource gets its own Gleam type and is imported automatically in the parent resource's generated file.
+### Using custom types
 
 ```elixir
-defmodule MyApp.Tag do
-  use Ash.Resource,
-    domain: MyApp.Domain,
-    data_layer: :embedded,
-    extensions: [AshGleam.Resource]
-
-  gleam do
-    type_name "Tag"
-  end
-
-  attributes do
-    attribute :label, :string, allow_nil?: false, public?: true
-    attribute :color, :string, allow_nil?: false, public?: true
-  end
-end
-
 defmodule MyApp.Todo do
   use Ash.Resource,
     ...,
@@ -466,6 +449,30 @@ defmodule MyApp.Todo do
 
     # Gleam type List(Option(Tag))
     attribute :nullable_tags, {:array, MyApp.Tag}, allow_nil?: false, default: [], public?: true, nil_items?: true
+  end
+end
+```
+
+### Embedded resource support
+
+Resources with the `:embedded` data layer work as field types in other resources.
+The embedded resource gets its own Gleam type and is imported automatically in the parent resource's generated file.
+If you do not need actions or special validation, sum types are preferrable
+
+```elixir
+defmodule MyApp.Tag do
+  use Ash.Resource,
+    domain: MyApp.Domain,
+    data_layer: :embedded,
+    extensions: [AshGleam.Resource]
+
+  gleam do
+    type_name "Tag"
+  end
+
+  attributes do
+    attribute :label, :string, allow_nil?: false, public?: true
+    attribute :color, :string, allow_nil?: false, public?: true
   end
 end
 ```
@@ -493,3 +500,7 @@ MIT — see [LICENSES/MIT.txt](https://github.com/NduatiK/ash_gleam/blob/main/LI
 - **Hex**: [https://hex.pm/packages/ash_gleam](https://hex.pm/packages/ash_gleam)
 - **Docs**: [https://hexdocs.pm/ash_gleam](https://hexdocs.pm/ash_gleam)
 - **Issues**: [https://github.com/NduatiK/ash_gleam/issues](https://github.com/NduatiK/ash_gleam/issues)
+
+```
+
+```
