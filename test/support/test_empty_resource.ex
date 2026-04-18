@@ -1,11 +1,9 @@
 defmodule AshGleam.TestEmptyResource do
   use Ash.Resource,
-    domain: AshGleam.TestDomain,
+    domain: AshGleam.TestEmptyDomain,
     extensions: [AshGleam.Actions]
 
   gleam do
-    type_name "EmptyResource"
-
     actions do
       action :add, :integer do
         argument :a, :integer, allow_nil?: false

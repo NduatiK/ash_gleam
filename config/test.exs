@@ -1,6 +1,6 @@
 import Config
 
-ash_domains = [AshGleam.TestDomain, AshGleam.TestPolicyDomain]
+ash_domains = [AshGleam.TestDomain, AshGleam.TestPolicyDomain, AshGleam.TestEmptyDomain]
 
 config :ash_gleam,
   output: "src/test_generated",
