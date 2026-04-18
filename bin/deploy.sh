@@ -1,4 +1,3 @@
-mix docs && 
-    mix hex.publish package && 
+mix hex.publish && 
     git tag -a "$TAG" -m "$TAG" &&
     git push origin "$TAG"

@@ -6,7 +6,7 @@ defmodule AshGleam.MixProject do
   use Mix.Project
 
   @app :ash_gleam
-  @version "0.3.1"
+  @version "0.3.2"
 
   @description """
   Generate type-safe Gleam clients directly from your Ash resources and actions, ensuring end-to-end type safety between Gleam and Elixir.
@@ -18,7 +18,6 @@ defmodule AshGleam.MixProject do
       description: @description,
       version: @version,
       package: package(),
-      docs: &docs/0,
       #
       elixir: "~> 1.15",
       elixirc_paths: elixirc_paths(Mix.env()),
@@ -111,24 +110,11 @@ defmodule AshGleam.MixProject do
       "test.compile_should_pass": "cmd cd test/ts && npm run compileShouldPass",
       "test.compile_should_fail": "cmd cd test/ts && npm run compileShouldFail",
       sobelow: "sobelow --skip",
-      docs: [
-        "spark.cheat_sheets",
-        "docs",
-        "spark.replace_doc_links"
-      ],
       credo: "credo --strict"
       # "spark.formatter":
       #   "spark.formatter --extensions AshGleam.Rpc,AshGleam.Resource,AshGleam.TypedController.Dsl,AshGleam.TypedChannel.Dsl",
       # "spark.cheat_sheets":
       #   "spark.cheat_sheets --extensions AshGleam.Rpc,AshGleam.Resource,AshGleam.TypedController.Dsl,AshGleam.TypedChannel.Dsl"
-    ]
-  end
-
-  defp docs do
-    [
-      extras: [
-        "README.md"
-      ]
     ]
   end
 

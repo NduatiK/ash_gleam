@@ -17,15 +17,24 @@ SPDX-License-Identifier: MIT
 AshGleam integrates Elixir's Ash framework and Gleam into a single, cohesive system. It enables you to move data and execution across the boundary with compile-time guarantees.
 
 You can:
-- [Generate Gleam types from your Ash resources](#generate-gleam-types-from-your-ash-resources)
-- [Expose Gleam functions as Ash actions](#generate-gleam-types-from-your-ash-resources)
-- [Expose Ash actions in Gleam](#expose-ash-actions-to-gleam)
-- [Represent Gleam custom-types in Elixir](#represent-gleam-custom-types-in-elixir)
+- [AshGleam](#ashgleam)
+  - [Installation](#installation)
+    - [With Igniter (recommended)](#with-igniter-recommended)
+    - [Manual setup](#manual-setup)
+  - [Generate Gleam types from your Ash resources](#generate-gleam-types-from-your-ash-resources)
+  - [Expose Gleam functions as Ash actions](#expose-gleam-functions-as-ash-actions)
+  - [Expose Ash actions to Gleam](#expose-ash-actions-to-gleam)
+  - [Represent Gleam custom-types in Elixir](#represent-gleam-custom-types-in-elixir)
+  - [Embedded resources](#embedded-resources)
+  - [Requirements](#requirements)
+  - [Contributing](#contributing)
+  - [License](#license)
+  - [Links](#links)
 
 ## Installation
 
-<details>
-<summary>
+
+
   
 ### With Igniter (recommended)
 
@@ -33,7 +42,8 @@ You can:
 mix igniter.install ash_gleam
 ```
 
-</summary>
+
+
 
 ```bash
 mix igniter.install ash_gleam
@@ -56,13 +66,13 @@ You will still need to install the Gleam compiler and the MixGleam archive:
 mix archive.install hex mix_gleam
 ```
 
-</details>
-<details>
-<summary>
+
+
   
 ### Manual setup
 
-</summary>
+
+
 Add `ash_gleam` to your dependencies:
 
 ```elixir
@@ -111,14 +121,14 @@ Create a `src/` directory for your Gleam source files and add the following to y
 /src/generated/manifest.term
 ```
 
-</details>
 
 ## Generate Gleam types from your Ash resources
 
-<details>
-  <summary>
+
+  
 1. Add <code>AshGleam.Resource</code> to your resource and declare a <code>gleam</code> block:    
-</summary>
+
+
   
 ```elixir
 defmodule MyApp.Todo do
@@ -138,12 +148,12 @@ defmodule MyApp.Todo do
   end
 end
 ```
-</details>
 
-<details>
-  <summary>
+
+  
 2. Run `mix ash_gleam.codegen`
-  </summary>
+  
+  
   
 ```gleam
 // generated at src/generated/src/todo_item
@@ -156,17 +166,17 @@ pub type TicTacToe {
   )
 }
 ```
-</details>
 
 
 Only `public?: true` attributes are included in the generated Gleam type.
 
 ## Expose Gleam functions as Ash actions
 
-<details>
-  <summary>
+
+  
 1. Create a gleam function (make sure you have run the generator first)
-  </summary>
+  
+  
 
 ```gleam
 // Import the generated Todo type
@@ -176,12 +186,12 @@ pub fn mark_completed(item: Todo) -> Todo {
   Todo(..item, completed: True)
 }
 ```
-</details>
 
-<details>
-  <summary>
+
+  
 2. Add <code>AshGleam.Actions</code> to your resource and declare a <code>gleam.actions</code> block for that function
-  </summary>
+  
+  
 
 ```elixir
 defmodule MyApp.Todo do
@@ -205,12 +215,12 @@ defmodule MyApp.Todo do
   end
 end
 ```
-</details>
 
-<details>
-  <summary>
+
+  
 3. Use the exposed function
-  </summary>
+  
+  
   
 ```elixir
 todo = # create a todo
@@ -224,12 +234,12 @@ assert {:ok, updated} = MyApp.Todo.mark_completed(%{todo: todo})
   |> AshGleam.Changeset.for_update(:mark_completed, %{}, action: :update)
   |> Ash.update!()
 ```
-</details>
 
-<details>
-  <summary>
+
+  
 4. If you want a code interface that does the update for you, update your domain
-  </summary>
+  
+  
     
 ```elixir
 defmodule MyApp.Domain do
@@ -249,14 +259,14 @@ end
 # mark_completed and persist
 {:ok, updated} = MyApp.Domain.mark_completed(todo)
 ```
-</details>
 
 ## Expose Ash actions to Gleam
 
-<details>
-  <summary>
+
+  
 1. Add the resource actions you want to expose to Gleam
-  </summary>
+  
+  
   
 ```elixir
 defmodule MyApp.Todo do
@@ -293,12 +303,12 @@ defmodule MyApp.Todo do
 end
 ```
 
-</details>
 
-<details>
-  <summary>
+
+  
 2. Create an entry in gleam.ffi for your resource actions
-  </summary>
+  
+  
 
 ```elixir
 defmodule MyApp.Domain do
@@ -320,14 +330,14 @@ defmodule MyApp.Domain do
 end
 ```
 
-</details>
 
 3. Run `mix ash_gleam.codegen`
 
-<details>
-  <summary>
+
+  
 4. Use the generated gleam functions
-  </summary>
+  
+  
   
 ```gleam
 import myapp/generated/src/list_todos
@@ -345,7 +355,6 @@ pub fn fetch_incomplete_todo_titles(): Result(List(String), String) {
 }
 ```
 
-</details>
 
 ## Represent Gleam custom-types in Elixir
 
