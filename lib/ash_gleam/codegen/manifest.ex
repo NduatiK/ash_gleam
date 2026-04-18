@@ -3,7 +3,9 @@
 # SPDX-License-Identifier: MIT
 
 defmodule AshGleam.Codegen.Manifest do
-  @moduledoc false
+  @moduledoc """
+  A data-structure to hold all the extracted information.
+  """
 
   @spec build(Keyword.t()) :: map()
   def build(opts \\ []) do

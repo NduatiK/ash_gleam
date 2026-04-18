@@ -4,6 +4,7 @@
 
 defmodule AshGleam.Codegen.Renderer do
   @moduledoc false
+  alias AshGleam.Spec.ReusableType
 
   @spec render(map(), Keyword.t()) :: %{
           gleam: [%{path: String.t(), contents: String.t()}],
@@ -13,7 +14,7 @@ defmodule AshGleam.Codegen.Renderer do
     prefix = AshGleam.Info.gleam_module_prefix(opts)
 
     reusable_type_modules =
-      Enum.map(manifest.reusable_types, fn {_name, reusable_type} ->
+      Enum.map(manifest.reusable_types, fn {_name, %ReusableType{} = reusable_type} ->
         %{
           path: "#{reusable_type.module_name}.gleam",
           contents: render_reusable_type_module(reusable_type, manifest.reusable_types, prefix)
@@ -63,7 +64,8 @@ defmodule AshGleam.Codegen.Renderer do
     context_module = [%{path: "ash_gleam/context.gleam", contents: render_context_module()}]
 
     %{
-      gleam: context_module ++ reusable_type_modules ++ resource_modules ++ ffi_modules ++ bridge_gleam,
+      gleam:
+        context_module ++ reusable_type_modules ++ resource_modules ++ ffi_modules ++ bridge_gleam,
       elixir: elixir ++ bridge_elixir
     }
   end
@@ -81,7 +83,7 @@ defmodule AshGleam.Codegen.Renderer do
       |> Enum.map(fn %{module_name: module_name, definition: definition} ->
         %{
           path: "#{module_name}.gleam",
-          contents: render_atom_type_module(resource, prefix, definition)
+          contents: render_custom_type(definition)
         }
       end)
 
@@ -94,10 +96,12 @@ defmodule AshGleam.Codegen.Renderer do
       ]
   end
 
-  defp render_atom_type_module(_resource, _prefix, %{name: type_name, variants: variants}) do
+  defp render_custom_type(%{name: type_name, variants: variants}) do
+    variants = Enum.join(variants, "\n")
+
     """
     pub type #{type_name} {
-    #{Enum.map_join(variants, "\n", fn variant -> "  #{variant}" end)}
+      #{variants}
     }
     """
   end
@@ -107,7 +111,7 @@ defmodule AshGleam.Codegen.Renderer do
          _reusable_types,
          _prefix
        ) do
-    render_atom_type_module(nil, nil, %{
+    render_custom_type( %{
       name: type_name,
       variants: Enum.map(variants, &atom_variant!(&1.name))
     })
@@ -146,7 +150,9 @@ defmodule AshGleam.Codegen.Renderer do
 
         payload =
           Enum.map_join(variant.fields, ", ", fn field ->
-            Atom.to_string(field.name) <> ": "<> gleam_type_for_type(field.type, field.constraints, field.allow_nil?, field.name)
+            Atom.to_string(field.name) <>
+              ": " <>
+              gleam_type_for_type(field.type, field.constraints, field.allow_nil?, field.name)
           end)
 
         case variant.fields do
@@ -753,7 +759,8 @@ defmodule AshGleam.Codegen.Renderer do
             "#{arg.name}: #{gleam_type!(arg, arg.allow_nil?)}"
           end)
 
-        return_type = gleam_type_for_type(func.return_type, func.constraints, func.allow_nil?, func.name)
+        return_type =
+          gleam_type_for_type(func.return_type, func.constraints, func.allow_nil?, func.name)
 
         "@external(erlang, \"Elixir.#{generated_module}\", \"#{func.name}\")\npub fn #{func.name}(#{args}) -> Result(#{return_type}, String)"
       end)
@@ -761,7 +768,10 @@ defmodule AshGleam.Codegen.Renderer do
     all_types =
       Enum.flat_map(expose_fns, fn func ->
         return_types = direct_reusable_type_modules(func.return_type, func.constraints)
-        arg_types = Enum.flat_map(func.arguments, &direct_reusable_type_modules(&1.type, &1.constraints))
+
+        arg_types =
+          Enum.flat_map(func.arguments, &direct_reusable_type_modules(&1.type, &1.constraints))
+
         return_types ++ arg_types
       end)
       |> Enum.uniq()

@@ -20,7 +20,11 @@ defmodule AshGleam.Spec.ReusableType do
   end
 
   @enforce_keys [:module, :kind, :gleam_type, :module_name, :variants]
-  defstruct module: nil, kind: nil, gleam_type: nil, module_name: nil, variants: []
+  defstruct module: nil,
+            kind: nil,
+            gleam_type: nil,
+            module_name: nil,
+            variants: []
 
   @type t :: %__MODULE__{
           module: module(),
