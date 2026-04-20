@@ -9,6 +9,7 @@ spark_locals_without_parens = [
   argument: 3,
   define_gleam_update: 2,
   type_name: 1,
+  module_name: 1,
   update?: 1
 ]
 

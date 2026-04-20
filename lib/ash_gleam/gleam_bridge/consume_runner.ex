@@ -30,8 +30,11 @@ defmodule AshGleam.GleamBridge.ConsumeRunner do
     |> AshGleam.GleamBridge.Info.consume_functions()
     |> Enum.find(&(&1.name == func_name))
     |> case do
-      nil -> raise ArgumentError, "no consume function #{inspect(func_name)} on #{inspect(module)}"
-      func -> func
+      nil ->
+        raise ArgumentError, "no consume function #{inspect(func_name)} on #{inspect(module)}"
+
+      func ->
+        func
     end
   end
 

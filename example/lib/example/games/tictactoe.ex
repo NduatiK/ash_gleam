@@ -12,9 +12,9 @@ defmodule Example.Games.TicTacToe do
     private? false
     table :games_tictactoe
   end
-
+  
   gleam do
-    type_name("TicTacToe")
+    type_name "TicTacToe"
 
     actions do
       action :win, Winner do
@@ -80,6 +80,13 @@ defmodule Example.Games.TicTacToe do
     attribute :winner, Winner do
       public? true
       allow_nil? true
+    end
+
+    # For atoms use an AshSumType
+    attribute :an_example_unsupported_type, :atom do
+      public? true
+      allow_nil? true
+
     end
   end
 end

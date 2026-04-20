@@ -5,6 +5,7 @@ defmodule AshGleam.TestDomain do
 
   resources do
     resource AshGleam.TestTodo
+    resource AshGleam.TestDynamicTodo
     resource AshGleam.TestEmptyResource
     resource AshGleam.TestProject
     resource AshGleam.TestGame

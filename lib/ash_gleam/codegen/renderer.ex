@@ -111,7 +111,7 @@ defmodule AshGleam.Codegen.Renderer do
          _reusable_types,
          _prefix
        ) do
-    render_custom_type( %{
+    render_custom_type(%{
       name: type_name,
       variants: Enum.map(variants, &atom_variant!(&1.name))
     })
@@ -266,6 +266,8 @@ defmodule AshGleam.Codegen.Renderer do
     imports = resource_imports(resource.fields, prefix, resource.module)
     atom_imports = atom_type_imports(resource, resource.fields, prefix)
     reusable_imports = reusable_type_imports(resource.fields, reusable_types, prefix)
+    dynamic_import = dynamic_type_import(resource.fields)
+    queryable_fields = Enum.reject(resource.fields, &gleam_dynamic_field?/1)
 
     fields =
       Enum.map_join(resource.fields, ",\n", fn field ->
@@ -273,19 +275,19 @@ defmodule AshGleam.Codegen.Renderer do
       end)
 
     sorts =
-      Enum.map_join(resource.fields, "\n", fn field ->
+      Enum.map_join(queryable_fields, "\n", fn field ->
         base = Macro.camelize(to_string(field.name))
         "  #{base}(Sorter)"
       end)
 
     filters =
-      Enum.map_join(resource.fields, "\n", fn field ->
+      Enum.map_join(queryable_fields, "\n", fn field ->
         "  #{Macro.camelize(to_string(field.name))}Eq(#{gleam_type!(field, false)})"
       end)
 
     """
     #{if(String.contains?(fields, "Option("), do: "import gleam/option.{type Option}", else: "")}
-    #{imports}#{atom_imports}#{reusable_imports}pub type #{resource.gleam_type} {
+    #{imports}#{atom_imports}#{reusable_imports}#{dynamic_import}pub type #{resource.gleam_type} {
       #{resource.gleam_type}(
     #{fields}
       )
@@ -320,6 +322,7 @@ defmodule AshGleam.Codegen.Renderer do
         extra_imports = resource_imports(create_fields, prefix, resource.module)
         atom_imports = atom_type_imports(resource, create_fields, prefix)
         reusable_imports = reusable_type_imports(create_fields, %{}, prefix)
+        dynamic_import = dynamic_type_import(create_fields)
 
         fields =
           Enum.map_join(create_fields, ",\n", fn field ->
@@ -337,7 +340,7 @@ defmodule AshGleam.Codegen.Renderer do
         """
         import gleam/option.{type Option, None}
         import #{resource_import}.{type #{resource_type}}
-        #{extra_imports}#{atom_imports}#{reusable_imports}#{context_import}
+        #{extra_imports}#{atom_imports}#{reusable_imports}#{dynamic_import}#{context_import}
         pub type #{action_module} {
           #{action_module}(
         #{fields},
@@ -720,6 +723,31 @@ defmodule AshGleam.Codegen.Renderer do
       {:ok, {:resource, mod}} -> [mod]
       _ -> []
     end
+  end
+
+  defp dynamic_type_import(fields) do
+    if Enum.any?(fields, &gleam_dynamic_field?/1) do
+      "import gleam/dynamic.{type Dynamic}\n"
+    else
+      ""
+    end
+  end
+
+  defp gleam_dynamic_field?(%{type: type} = field) do
+    gleam_dynamic_field?(type, Map.get(field, :constraints, []))
+  end
+
+  defp gleam_dynamic_field?({:array, inner}, constraints) do
+    item_constraints =
+      constraints
+      |> Keyword.get(:items, [])
+      |> List.wrap()
+
+    gleam_dynamic_field?(inner, item_constraints)
+  end
+
+  defp gleam_dynamic_field?(type, constraints) do
+    match?({:ok, :dynamic}, AshGleam.TypeMapper.normalize(type, constraints))
   end
 
   defp join_imports(left, right) do

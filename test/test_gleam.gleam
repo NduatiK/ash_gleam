@@ -6,6 +6,7 @@ import test_generated/src/ash_gleam/test_mark.{type TestMark, Empty}
 import test_generated/src/ash_gleam/test_player.{X}
 import test_generated/src/ash_gleam/test_winner.{type TestWinner, Player}
 import test_generated/src/destroy_todo
+import test_generated/src/dynamic_todo_item.{type DynamicTodo}
 import test_generated/src/first_completed_todo
 import test_generated/src/gleam_admin_add
 import test_generated/src/project_item.{type Project, Project}
@@ -64,6 +65,10 @@ pub fn default_winner() -> TestWinner {
 
 pub fn round_trip_add(a: Int, b: Int) -> Result(Int, String) {
   math_bridge.add(a, b)
+}
+
+pub fn round_trip_dynamic(todo_item: DynamicTodo) -> DynamicTodo {
+  todo_item
 }
 
 pub fn complete_all_tasks(project: Project) -> Project {

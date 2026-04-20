@@ -26,6 +26,7 @@ defmodule AshGleam.Codec.Value do
 
     case AshGleam.TypeMapper.normalize(type, constraints) do
       {:ok, {:scalar, _}} -> value
+      {:ok, :dynamic} -> value
       {:ok, {:constrained_atom, _}} -> value
       {:ok, {:reusable_union, _, variants}} -> AshGleam.Codec.Union.encode(value, variants)
       {:ok, {:resource, resource}} -> AshGleam.Codec.Resource.to_gleam(resource, value)
@@ -56,6 +57,7 @@ defmodule AshGleam.Codec.Value do
 
     case AshGleam.TypeMapper.normalize(type, constraints) do
       {:ok, {:scalar, _}} -> value
+      {:ok, :dynamic} -> value
       {:ok, {:constrained_atom, _}} -> value
       {:ok, {:reusable_union, _, variants}} -> AshGleam.Codec.Union.decode(value, variants)
       {:ok, {:resource, resource}} -> AshGleam.Codec.Resource.from_gleam(resource, value)

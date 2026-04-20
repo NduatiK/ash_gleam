@@ -1,6 +1,5 @@
 defmodule AshGleam.CodegenTest do
   use ExUnit.Case, async: false
-  import ExUnit.CaptureIO
 
   test "manifest includes ash_gleam resources, ffi exports, and gleam actions" do
     manifest = AshGleam.manifest(otp_app: :ash_gleam)
@@ -415,10 +414,10 @@ defmodule AshGleam.CodegenTest do
              Path.wildcard(Path.join(gleam_src, "**/winner#{suffix}.gleam"))
   end
 
-  test "resource validation rejects atom fields without one_of constraint" do
+  test "codegen emits Dynamic for unsupported resource fields" do
     suffix = System.unique_integer([:positive])
-    domain = Module.concat([AshGleam, Dynamic, :"InvalidAtomDomain#{suffix}"])
-    resource = Module.concat([AshGleam, Dynamic, :"InvalidAtomResource#{suffix}"])
+    domain = Module.concat([AshGleam, Dynamic, :"DynamicFieldDomain#{suffix}"])
+    resource = Module.concat([AshGleam, Dynamic, :"DynamicFieldResource#{suffix}"])
 
     quoted =
       quote do
@@ -442,23 +441,52 @@ defmodule AshGleam.CodegenTest do
           end
 
           gleam do
-            type_name "BrokenAtom"
+            type_name "DynamicField"
+            module_name("dynamic_field")
           end
 
           attributes do
             uuid_primary_key :id
             attribute :status, :atom, public?: true
+            attribute :metadata, :map, public?: true
           end
         end
       end
 
-    output =
-      capture_io(:stderr, fn ->
-        compiled = Code.compile_quoted(quoted)
-        assert length(compiled) >= 2
-      end)
+    compiled = Code.compile_quoted(quoted)
+    assert length(compiled) >= 2
 
-    assert output =~ "Unsupported fields: status"
+    tmp = Path.join(System.tmp_dir!(), "ash_gleam_codegen_dynamic_#{suffix}")
+
+    on_exit(fn ->
+      File.rm_rf(tmp)
+
+      Application.put_env(
+        :ash_gleam,
+        :ash_domains,
+        Application.get_env(:ash_gleam, :default_ash_domains)
+      )
+    end)
+
+    Application.put_env(:ash_gleam, :ash_domains, [domain])
+
+    assert :ok = AshGleam.codegen(otp_app: :ash_gleam, output: tmp)
+
+    generated =
+      [output: tmp]
+      |> AshGleam.Info.gleam_dir()
+      |> Path.join("dynamic_field.gleam")
+      |> File.read!()
+
+    assert generated =~ "import gleam/dynamic.{type Dynamic}"
+    assert generated =~ "status: Option(Dynamic)"
+    assert generated =~ "metadata: Option(Dynamic)"
+    refute generated =~ "Status(Sorter)"
+    refute generated =~ "Metadata(Sorter)"
+    refute generated =~ "StatusEq(Dynamic)"
+    refute generated =~ "MetadataEq(Dynamic)"
+    assert generated =~ "Id(Sorter)"
+    assert generated =~ "IdEq(String)"
   end
 
   test "codegen emits Gleam union types for constrained arrays of atoms" do

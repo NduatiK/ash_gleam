@@ -164,8 +164,8 @@ defmodule MyApp.Todo do
 
   attributes do
     uuid_primary_key :id
-    attribute :title, :string, allow_nil?: false, public?: true
-    attribute :completed, :boolean, default: false, public?: true
+    attribute :title, :string, allow_nil?: false
+    attribute :completed, :boolean, default: false
   end
 end
 ```
@@ -175,16 +175,13 @@ end
 ```gleam
 // generated at src/generated/src/todo_item
 
-pub type TicTacToe {
-  TicTacToe(
-    id: String,
+pub type Todo {
+  Todo(
     title: String,
     completed: Boolean,
   )
 }
 ```
-
-Only `public?: true` attributes are included in the generated Gleam type.
 
 ### Expose Gleam functions as Ash actions
 
@@ -441,13 +438,13 @@ defmodule MyApp.Todo do
   attributes do
     ...
     # Gleam type Tag
-    attribute :primary_tag, MyApp.Tag, allow_nil?: false, default: [], public?: true
+    attribute :primary_tag, MyApp.Tag, allow_nil?: false, default: []
 
     # Gleam type List(Tag)
-    attribute :tags, {:array, MyApp.Tag}, allow_nil?: false, default: [], public?: true
+    attribute :tags, {:array, MyApp.Tag}, allow_nil?: false, default: []
 
     # Gleam type List(Option(Tag))
-    attribute :nullable_tags, {:array, MyApp.Tag}, allow_nil?: false, default: [], public?: true, nil_items?: true
+    attribute :nullable_tags, {:array, MyApp.Tag}, allow_nil?: false, default: [], nil_items?: true
   end
 end
 ```
@@ -470,8 +467,8 @@ defmodule MyApp.Tag do
   end
 
   attributes do
-    attribute :label, :string, allow_nil?: false, public?: true
-    attribute :color, :string, allow_nil?: false, public?: true
+    attribute :label, :string, allow_nil?: false
+    attribute :color, :string, allow_nil?: false
   end
 end
 ```

@@ -25,10 +25,17 @@ defmodule AshGleam.Spec.Field do
         }
 
   def from_attribute(attribute) do
+    {type, constraints} =
+      if AshGleam.TypeMapper.supported?(attribute.type, Map.get(attribute, :constraints, [])) do
+        {attribute.type, Map.get(attribute, :constraints, [])}
+      else
+        {:dynamic, []}
+      end
+
     %__MODULE__{
       name: attribute.name,
-      type: attribute.type,
-      constraints: Map.get(attribute, :constraints, []),
+      type: type,
+      constraints: constraints,
       allow_nil?: Map.get(attribute, :allow_nil?, false),
       primary_key?: Map.get(attribute, :primary_key?, false),
       writable?: Map.get(attribute, :writable?, false),

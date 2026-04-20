@@ -1,4 +1,6 @@
 When testing, always use `mix test` and not `mix test <file>`
+When adding new gleam features to test_gleam.gleam, make sure you run `mix ash_gleam.codegen` first so that you don't add functions that reference code that has not been generated yet.
+Here's the order: Change Elixir code -> codegen -> Change Gleam code to use new features.
 
 
 <!-- code-review-graph MCP tools -->

@@ -22,7 +22,12 @@ defmodule AshGleam.Transformers.ValidateBridgeExpose do
 
   defp validate_arguments(arguments, dsl_state) do
     Enum.reduce_while(arguments, :ok, fn argument, :ok ->
-      case validate_type(argument.type, argument.constraints, dsl_state, "argument #{inspect(argument.name)}") do
+      case validate_type(
+             argument.type,
+             argument.constraints,
+             dsl_state,
+             "argument #{inspect(argument.name)}"
+           ) do
         :ok -> {:cont, :ok}
         {:error, error} -> {:halt, {:error, error}}
       end
@@ -36,7 +41,8 @@ defmodule AshGleam.Transformers.ValidateBridgeExpose do
       {:error,
        Spark.Error.DslError.exception(
          module: dsl_state,
-         message: "Unsupported #{label} #{inspect(type)} with constraints #{inspect(constraints)} in gleam.expose"
+         message:
+           "Unsupported #{label} #{inspect(type)} with constraints #{inspect(constraints)} in gleam.expose"
        )}
     end
   end
@@ -52,7 +58,8 @@ defmodule AshGleam.Transformers.ValidateBridgeExpose do
       {:error,
        Spark.Error.DslError.exception(
          module: Keyword.get(info, :module),
-         message: "`run` fn arity (#{arity}) must match declared argument count (#{expected_arity}) in gleam.expose"
+         message:
+           "`run` fn arity (#{arity}) must match declared argument count (#{expected_arity}) in gleam.expose"
        )}
     end
   end
@@ -61,7 +68,8 @@ defmodule AshGleam.Transformers.ValidateBridgeExpose do
     {:error,
      Spark.Error.DslError.exception(
        module: func.__spark_metadata__[:module],
-       message: "`run` in gleam.expose must be an anonymous function, e.g. `fn a, b -> {:ok, a + b} end`"
+       message:
+         "`run` in gleam.expose must be an anonymous function, e.g. `fn a, b -> {:ok, a + b} end`"
      )}
   end
 end

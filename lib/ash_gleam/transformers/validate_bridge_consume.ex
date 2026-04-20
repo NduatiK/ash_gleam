@@ -22,7 +22,12 @@ defmodule AshGleam.Transformers.ValidateBridgeConsume do
 
   defp validate_arguments(arguments, dsl_state) do
     Enum.reduce_while(arguments, :ok, fn argument, :ok ->
-      case validate_type(argument.type, argument.constraints, dsl_state, "argument #{inspect(argument.name)}") do
+      case validate_type(
+             argument.type,
+             argument.constraints,
+             dsl_state,
+             "argument #{inspect(argument.name)}"
+           ) do
         :ok -> {:cont, :ok}
         {:error, error} -> {:halt, {:error, error}}
       end
@@ -36,7 +41,8 @@ defmodule AshGleam.Transformers.ValidateBridgeConsume do
       {:error,
        Spark.Error.DslError.exception(
          module: dsl_state,
-         message: "Unsupported #{label} #{inspect(type)} with constraints #{inspect(constraints)} in gleam.consume"
+         message:
+           "Unsupported #{label} #{inspect(type)} with constraints #{inspect(constraints)} in gleam.consume"
        )}
     end
   end
@@ -52,7 +58,8 @@ defmodule AshGleam.Transformers.ValidateBridgeConsume do
       {:error,
        Spark.Error.DslError.exception(
          module: Keyword.get(info, :module),
-         message: "`run` (#{inspect(func.run)}) in gleam.consume must be a remote function capture whose arity matches the declared arguments"
+         message:
+           "`run` (#{inspect(func.run)}) in gleam.consume must be a remote function capture whose arity matches the declared arguments"
        )}
     end
   end
@@ -61,7 +68,8 @@ defmodule AshGleam.Transformers.ValidateBridgeConsume do
     {:error,
      Spark.Error.DslError.exception(
        module: func.__spark_metadata__[:module],
-       message: "`run` in gleam.consume must be a remote function capture, e.g. `&:my_gleam_module.add/2`"
+       message:
+         "`run` in gleam.consume must be a remote function capture, e.g. `&:my_gleam_module.add/2`"
      )}
   end
 end

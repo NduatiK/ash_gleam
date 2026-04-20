@@ -21,6 +21,7 @@ defmodule AshGleam.TypeMapper do
   def supported?(type, constraints \\ []) do
     case normalize(type, constraints) do
       {:ok, {:scalar, _}} -> true
+      {:ok, :dynamic} -> true
       {:ok, {:constrained_atom, _}} -> true
       {:ok, {:reusable_union, _, variants}} -> Enum.all?(variants, &supported_union_variant?/1)
       {:ok, {:array, inner}} -> supported?(inner)
@@ -55,6 +56,7 @@ defmodule AshGleam.TypeMapper do
 
   # Pass-through for already-normalized forms produced by recursive normalize calls.
   def normalize({:scalar, _} = normalized, _constraints), do: {:ok, normalized}
+  def normalize(:dynamic, _constraints), do: {:ok, :dynamic}
   def normalize({:constrained_atom, _} = normalized, _constraints), do: {:ok, normalized}
   def normalize({:reusable_union, _, _} = normalized, _constraints), do: {:ok, normalized}
   def normalize({:resource, _} = normalized, _constraints), do: {:ok, normalized}
@@ -114,6 +116,9 @@ defmodule AshGleam.TypeMapper do
     case normalize(type, constraints) do
       {:ok, {:scalar, scalar}} ->
         {:ok, {scalar, []}}
+
+      {:ok, :dynamic} ->
+        {:ok, {:term, []}}
 
       {:ok, {:constrained_atom, values}} ->
         {:ok, {:atom, one_of: values}}
@@ -180,6 +185,9 @@ defmodule AshGleam.TypeMapper do
 
       {:ok, {:scalar, :term}} ->
         {:ok, "String"}
+
+      {:ok, :dynamic} ->
+        {:ok, "Dynamic"}
 
       {:ok, {:constrained_atom, values}} ->
         {:ok, gleam_constrained_atom_type_name(name, values)}

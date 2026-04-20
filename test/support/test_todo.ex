@@ -44,7 +44,7 @@ defmodule AshGleam.TestTodo do
 
   gleam do
     type_name "Todo"
-    module_name("todo_item")
+    module_name "todo_item"
 
     actions do
       action :add, :integer do

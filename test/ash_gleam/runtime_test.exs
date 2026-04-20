@@ -4,6 +4,7 @@ defmodule AshGleam.RuntimeTest do
   setup do
     for {mod, table} <- [
           {AshGleam.TestTodo, :ash_gleam_test_todos},
+          {AshGleam.TestDynamicTodo, :ash_gleam_test_dynamic_todos},
           {AshGleam.TestProject, :ash_gleam_test_projects}
         ] do
       try do
@@ -20,6 +21,7 @@ defmodule AshGleam.RuntimeTest do
 
     on_exit(fn ->
       Ash.DataLayer.Ets.stop(AshGleam.TestTodo)
+      Ash.DataLayer.Ets.stop(AshGleam.TestDynamicTodo)
       Ash.DataLayer.Ets.stop(AshGleam.TestProject)
     end)
 
@@ -231,6 +233,28 @@ defmodule AshGleam.RuntimeTest do
 
     assert AshGleam.Marshal.output!(AshGleam.TestWinner, {:player, :x}, allow_nil?: false) ==
              {:player, :x}
+  end
+
+  test "dynamic-backed resource fields round-trip through a gleam action" do
+    todo =
+      AshGleam.TestDynamicTodo
+      |> Ash.Changeset.for_create(:create, %{
+        title: "Ship dynamic round trip",
+        metadata: %{source: "elixir", nested: %{count: 2}},
+        status: :pending
+      })
+      |> Ash.create!()
+
+    assert {:ok, returned} = AshGleam.TestDynamicTodo.round_trip_dynamic(%{todo: todo})
+
+    assert %AshGleam.TestDynamicTodo{
+             id: id,
+             title: "Ship dynamic round trip",
+             metadata: %{source: "elixir", nested: %{count: 2}},
+             status: :pending
+           } = returned
+
+    assert id == todo.id
   end
 
   test "gleam actions accept and return ash_sum_type values" do

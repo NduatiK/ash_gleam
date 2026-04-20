@@ -1,6 +1,7 @@
 import generated/src/example/games/tic_tac_toe/mark.{type Mark}
 import generated/src/example/games/tic_tac_toe/player.{type Player}
 import generated/src/example/games/tic_tac_toe/winner.{type Winner}
+import gleam/dynamic.{type Dynamic}
 import gleam/option.{type Option}
 
 pub type TicTacToe {
@@ -9,6 +10,7 @@ pub type TicTacToe {
     board: List(Option(Mark)),
     current_player: Player,
     winner: Option(Winner),
+    an_example_unsupported_type: Option(Dynamic),
   )
 }
 

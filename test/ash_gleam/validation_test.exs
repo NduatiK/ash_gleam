@@ -2,7 +2,7 @@ defmodule AshGleam.ValidationTest do
   use ExUnit.Case, async: false
   import ExUnit.CaptureIO
 
-  test "resource validation rejects unsupported field types" do
+  test "resource validation allows unsupported field types by exporting them as dynamic" do
     suffix = System.unique_integer([:positive])
     domain = Module.concat([AshGleam, Dynamic, :"UnsupportedDomain#{suffix}"])
     resource = Module.concat([AshGleam, Dynamic, :"UnsupportedResource#{suffix}"])
@@ -45,10 +45,14 @@ defmodule AshGleam.ValidationTest do
         assert length(compiled) >= 2
       end)
 
-    assert output =~ "Unsupported fields: metadata"
+    assert output == ""
+    assert [id_field, metadata_field] = AshGleam.Resource.Info.field_specs(resource)
+    assert id_field.name == :id
+    assert metadata_field.name == :metadata
+    assert metadata_field.type == :dynamic
   end
 
-  test "resource validation rejects atom fields without one_of constraints" do
+  test "resource validation exports unconstrained atom fields as dynamic" do
     suffix = System.unique_integer([:positive])
     domain = Module.concat([AshGleam, Dynamic, :"AtomDomain#{suffix}"])
     resource = Module.concat([AshGleam, Dynamic, :"AtomResource#{suffix}"])
@@ -91,7 +95,10 @@ defmodule AshGleam.ValidationTest do
         assert length(compiled) >= 2
       end)
 
-    assert output =~ "Unsupported fields: status"
+    assert output == ""
+    assert [_, field] = AshGleam.Resource.Info.field_specs(resource)
+    assert field.name == :status
+    assert field.type == :dynamic
   end
 
   test "gleam action validation rejects wrong run arity" do
@@ -250,7 +257,7 @@ defmodule AshGleam.ValidationTest do
                  end
   end
 
-  test "resource validation rejects unsupported reusable types" do
+  test "resource validation exports unsupported reusable types as dynamic" do
     suffix = System.unique_integer([:positive])
     domain = Module.concat([AshGleam, Dynamic, :"UnsupportedReusableDomain#{suffix}"])
     type = Module.concat([AshGleam, Dynamic, :"UnsupportedReusableType#{suffix}"])
@@ -298,7 +305,10 @@ defmodule AshGleam.ValidationTest do
         assert length(compiled) >= 3
       end)
 
-    assert output =~ "AshSumType"
+    assert output == ""
+    assert [_, field] = AshGleam.Resource.Info.field_specs(resource)
+    assert field.name == :status
+    assert field.type == :dynamic
   end
 
   test "gleam action validation accepts supported reusable types" do
